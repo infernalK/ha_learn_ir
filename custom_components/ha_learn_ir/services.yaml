@@ -28,3 +28,4 @@ create_ir_code:
       required: true
       selector:
         object:
+          fields: {}
