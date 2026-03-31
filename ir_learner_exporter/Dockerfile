@@ -12,8 +12,8 @@ RUN pip3 install --no-cache-dir -r /requirements.txt
 COPY . /app
 WORKDIR /app
 
-# Expose port
-EXPOSE 8099
+# Make run.sh executable
+RUN chmod +x run.sh
 
 # Run the app
-CMD ["python3", "app.py"]
+CMD ["./run.sh"]

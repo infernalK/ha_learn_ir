@@ -1,0 +1,6 @@
+configuration:
+  title: IR Learner Exporter
+  description: Web interface for learning and exporting IR codes
+network:
+  title: Network
+  description: Network settings
