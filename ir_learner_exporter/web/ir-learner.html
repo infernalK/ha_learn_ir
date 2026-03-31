@@ -287,6 +287,7 @@ Swing</textarea>
 
 <script>
 const commands = [];
+const API_BASE = 'api';
 
 const $ = id => document.getElementById(id);
 const lines = id => $(id).value.split(/\n/).map(v => v.trim()).filter(Boolean);
@@ -399,7 +400,7 @@ $('generateMatrixBtn').onclick = async () => {
 
     console.log('Générer matrice payload', payload);
 
-    const r = await fetch('/api/generate_matrix', {
+    const r = await fetch(`${API_BASE}/generate_matrix`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -434,7 +435,7 @@ $('importBtn').onclick = async () => {
   const raw = $('importJson').value.trim();
   if (!raw) return;
 
-  const r = await fetch('/api/import', {
+  const r = await fetch(`${API_BASE}/import`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ json: raw })
@@ -473,7 +474,7 @@ $('findNextEmptyBtn').onclick = () => {
 $('learnBtn').onclick = async () => {
   const label = $('cmdName').value.trim() || 'learned_command';
 
-  const r = await fetch('/api/learn', {
+  const r = await fetch(`${API_BASE}/learn`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ label })
@@ -503,7 +504,7 @@ $('exportBtn').onclick = async () => {
     commands
   };
 
-  const r = await fetch('/api/export', {
+  const r = await fetch(`${API_BASE}/export`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
