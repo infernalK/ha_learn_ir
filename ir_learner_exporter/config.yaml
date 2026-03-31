@@ -1,12 +1,12 @@
 name: "IR Learner Exporter"
-version: "0.2.5"
+version: "0.2.6"
 slug: "ir_learner_exporter"
 description: "UI Ingress pour générer un JSON de codes IR"
 arch:
   - amd64
   - aarch64
-  - armv7
-  - i386
+  # armv7 et i386 sont dépréciés sur certaines versions Home Assistant
+  # les retirer si vous ne les utilisez pas pour éviter le warning
 startup: application
 boot: manual
 init: false
