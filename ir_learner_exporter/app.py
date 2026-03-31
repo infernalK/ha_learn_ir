@@ -3,13 +3,13 @@ import os
 import json
 import re
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from itertools import product
 
 app = Flask(__name__, static_folder="web", static_url_path="")
 
-PUBLIC_DIR = Path(os.environ.get("PUBLIC_DIR", "/config"))
-DATA_DIR = Path(os.environ.get("DATA_DIR", "/data"))
+PUBLIC_DIR = Path(os.environ.get("PUBLIC_DIR", "./config"))
+DATA_DIR = Path(os.environ.get("DATA_DIR", "./data"))
 EXPORT_FILENAME = os.environ.get("EXPORT_FILENAME", "learned_codes.json")
 DEFAULT_MANUFACTURER = os.environ.get("DEFAULT_MANUFACTURER", "")
 DEFAULT_SUPPORTED_CONTROLLER = os.environ.get("DEFAULT_SUPPORTED_CONTROLLER", "Broadlink")
@@ -169,7 +169,7 @@ def export_json():
     latest_path.write_text(text, encoding="utf-8")
 
     manifest = {
-        "generated_at": datetime.utcnow().isoformat() + "Z",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
         "filename": filename,
         "public_path": str(public_path),
         "data_path": str(data_path),
