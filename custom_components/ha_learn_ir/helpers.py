@@ -1,11 +1,4 @@
-from __future__ import annotations
-
-import aiofiles
-import json
-import logging
-import os
-from collections import defaultdict
-from typing import Any
+import asyncio
 
 from .const import PLATFORMS
 
@@ -176,20 +169,26 @@ async def async_load_device_data(
     return device_data
 
 
-def load_catalog(platform: str) -> list[dict[str, Any]]:
+async def load_catalog(platform: str) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
     directory = get_codes_dir(platform)
     if not os.path.isdir(directory):
         return items
 
-    for filename in sorted(os.listdir(directory)):
+    try:
+        filenames = sorted(await asyncio.to_thread(os.listdir, directory))
+    except OSError:
+        return items
+
+    for filename in filenames:
         if not filename.endswith(".json"):
             continue
         code = filename[:-5]
         path = os.path.join(directory, filename)
         try:
-            with open(path, "r", encoding="utf-8") as f:
-                data = json.load(f)
+            async with aiofiles.open(path, "r", encoding="utf-8") as f:
+                content = await f.read()
+            data = json.loads(content)
         except Exception as err:
             _LOGGER.warning("Skipping invalid SmartIR code file %s: %s", filename, err)
             continue
@@ -211,12 +210,12 @@ def load_catalog(platform: str) -> list[dict[str, Any]]:
     return items
 
 
-def get_manufacturers(platform: str) -> list[str]:
-    return sorted({item["manufacturer"] for item in load_catalog(platform)})
+async def get_manufacturers(platform: str) -> list[str]:
+    return sorted({item["manufacturer"] for item in await load_catalog(platform)})
 
 
-def get_models_for_manufacturer(platform: str, manufacturer: str) -> list[dict[str, Any]]:
-    return [item for item in load_catalog(platform) if item["manufacturer"] == manufacturer]
+async def get_models_for_manufacturer(platform: str, manufacturer: str) -> list[dict[str, Any]]:
+    return [item for item in await load_catalog(platform) if item["manufacturer"] == manufacturer]
 
 
 def infer_title(data: dict[str, Any]) -> str:

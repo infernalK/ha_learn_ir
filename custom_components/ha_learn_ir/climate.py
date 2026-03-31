@@ -87,7 +87,7 @@ class SmartIRClimate(ClimateEntity, RestoreEntity):
         self._operation_modes = [HVACMode.OFF] + valid_modes
 
         self._fan_modes = device_data["fanModes"]
-        self._swing_modes = device_data["swingModes"]
+        self._swing_modes = device_data.get("swingModes", [])
         self._commands = device_data["commands"]
 
         self._target_temperature = self._min_temperature

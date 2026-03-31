@@ -118,7 +118,7 @@ class ARSmartIRConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_manufacturer(self, user_input=None):
         platform = self._data[CONF_PLATFORM]
-        manufacturers = get_manufacturers(platform)
+        manufacturers = await get_manufacturers(platform)
 
         if user_input is not None:
             self._data["manufacturer"] = user_input["manufacturer"]
@@ -142,7 +142,7 @@ class ARSmartIRConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         platform = self._data[CONF_PLATFORM]
         manufacturer = self._data["manufacturer"]
 
-        models = get_models_for_manufacturer(platform, manufacturer)
+        models = await get_models_for_manufacturer(platform, manufacturer)
 
         if user_input is not None:
             self._data[CONF_DEVICE_CODE] = int(user_input[CONF_DEVICE_CODE])

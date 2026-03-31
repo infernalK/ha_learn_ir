@@ -27,4 +27,4 @@ create_ir_code:
       example: '{"commands": {"on": "IR_CODE"}}'
       required: true
       selector:
-        textarea:
+        object:
