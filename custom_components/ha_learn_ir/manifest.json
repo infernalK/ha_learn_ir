@@ -4,7 +4,6 @@
   "codeowners": [
     "@user"
   ],
-  "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/user/ha_learn_ir",
   "homeassistant": "2024.6.0",
