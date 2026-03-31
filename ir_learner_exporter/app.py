@@ -8,13 +8,12 @@ from itertools import product
 
 app = Flask(__name__, static_folder="web", static_url_path="")
 
-PUBLIC_DIR = Path(os.environ.get("PUBLIC_DIR", "/config"))
+PUBLIC_DIR = Path(os.environ.get("PUBLIC_DIR", "/homeassistant/www"))
 if not PUBLIC_DIR.exists():
     PUBLIC_DIR = Path("/homeassistant/www")
 
-DATA_DIR = Path(os.environ.get("DATA_DIR", "/data"))
-if not DATA_DIR.exists() and Path("/homeassistant").exists():
-    DATA_DIR = Path("/homeassistant")
+# Keep DATA_DIR as /homeassistant (not /data) because we write only in /homeassistant/www
+DATA_DIR = Path(os.environ.get("DATA_DIR", "/homeassistant"))
 
 EXPORT_FILENAME = os.environ.get("EXPORT_FILENAME", "learned_codes.json")
 DEFAULT_MANUFACTURER = os.environ.get("DEFAULT_MANUFACTURER", "")
