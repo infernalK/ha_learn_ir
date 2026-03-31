@@ -58,6 +58,20 @@ def template():
     })
 
 
+@app.get("/api/paths")
+def paths():
+    return jsonify({
+        "public_dir": str(PUBLIC_DIR),
+        "data_dir": str(DATA_DIR),
+        "cwd": str(Path.cwd()),
+        "exists_public_dir": PUBLIC_DIR.exists(),
+        "exists_data_dir": DATA_DIR.exists(),
+        "env_PUBLIC_DIR": os.environ.get("PUBLIC_DIR"),
+        "env_DATA_DIR": os.environ.get("DATA_DIR"),
+        "env_EXPORT_FILENAME": os.environ.get("EXPORT_FILENAME"),
+    })
+
+
 @app.post("/api/generate_matrix")
 def generate_matrix():
     payload = request.get_json(force=True)
@@ -162,15 +176,32 @@ def export_json():
         public_path = PUBLIC_DIR / filename
         data_path = DATA_DIR / filename
         latest_path = PUBLIC_DIR / "latest.json"
+        fallback_path = Path.cwd() / filename
 
         text = json.dumps(export, ensure_ascii=False, indent=2)
 
-        print(f"[DEBUG] Writing to: {public_path}")
-        public_path.write_text(text, encoding="utf-8")
-        print(f"[DEBUG] File written successfully: {public_path.exists()}")
-        
-        data_path.write_text(text, encoding="utf-8")
-        latest_path.write_text(text, encoding="utf-8")
+        written = {}
+        errors = []
+
+        for path in [public_path, data_path, fallback_path]:
+            try:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(text, encoding="utf-8")
+                written[str(path)] = True
+                print(f"[DEBUG] Wrote file: {path}")
+            except Exception as exc:
+                written[str(path)] = False
+                errors.append(f"{path}: {exc}")
+                print(f"[ERROR] Could not write file {path}: {exc}")
+
+        try:
+            latest_path.parent.mkdir(parents=True, exist_ok=True)
+            latest_path.write_text(text, encoding="utf-8")
+            written[str(latest_path)] = True
+        except Exception as exc:
+            written[str(latest_path)] = False
+            errors.append(f"{latest_path}: {exc}")
+            print(f"[ERROR] Could not write latest.json {latest_path}: {exc}")
 
         manifest = {
             "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -189,7 +220,11 @@ def export_json():
             "ok": True,
             "filename": filename,
             "command_count": len(export["commands"]),
-            "public_path": str(public_path)
+            "public_path": str(public_path),
+            "data_path": str(data_path),
+            "fallback_path": str(fallback_path),
+            "written": written,
+            "errors": errors,
         })
     except Exception as e:
         print(f"[ERROR] Export failed: {str(e)}")
