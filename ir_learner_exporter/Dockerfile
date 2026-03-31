@@ -1,19 +1,15 @@
 ARG BUILD_FROM
 FROM $BUILD_FROM
 
-# Install Python and pip
-RUN apk add --no-cache python3 py3-pip
+RUN apk add --no-cache python3 py3-pip bash
+RUN pip3 install --no-cache-dir flask==3.0.3 gunicorn==22.0.0
 
-# Copy requirements and install
-COPY requirements.txt /
-RUN pip3 install --no-cache-dir -r /requirements.txt
-
-# Copy the app
-COPY . /app
 WORKDIR /app
 
-# Make run.sh executable
-RUN chmod +x run.sh
+COPY app.py /app/app.py
+COPY web /app/web
+COPY run.sh /run.sh
 
-# Run the app
-CMD ["./run.sh"]
+RUN chmod a+x /run.sh
+
+CMD [ "/run.sh" ]

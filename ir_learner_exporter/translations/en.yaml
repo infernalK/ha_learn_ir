@@ -1,6 +1,13 @@
 configuration:
-  title: IR Learner Exporter
-  description: Web interface for learning and exporting IR codes
+  export_filename:
+    name: Export filename
+    description: Name of the generated JSON file.
+  default_manufacturer:
+    name: Default manufacturer
+    description: Pre-filled manufacturer name in the UI.
+  default_supported_controller:
+    name: Supported controller
+    description: Controller type stored in the exported JSON.
+
 network:
-  title: Network
-  description: Network settings
+  8099/TCP: Internal web UI port used by Ingress.

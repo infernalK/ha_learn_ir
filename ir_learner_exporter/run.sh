@@ -1,3 +1,13 @@
-#!/usr/bin/env bashio
+#!/usr/bin/with-contenv bashio
+set -euo pipefail
 
-python3 app.py
+export EXPORT_FILENAME="$(bashio::config 'export_filename')"
+export DEFAULT_MANUFACTURER="$(bashio::config 'default_manufacturer')"
+export DEFAULT_SUPPORTED_CONTROLLER="$(bashio::config 'default_supported_controller')"
+
+export PUBLIC_DIR="/config"
+export DATA_DIR="/data"
+
+mkdir -p "$PUBLIC_DIR" "$DATA_DIR"
+
+exec python3 /app/app.py
