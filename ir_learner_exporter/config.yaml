@@ -10,6 +10,7 @@ arch:
 startup: application
 boot: manual
 init: false
+build: true
 
 ingress: true
 ingress_port: 8099
