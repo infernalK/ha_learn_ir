@@ -1,8 +1,7 @@
-ARG BUILD_FROM
-FROM $BUILD_FROM
+ARG BUILD_FROM=ghcr.io/home-assistant/aarch64-base:latest
+FROM ${BUILD_FROM}
 
-RUN apk add --no-cache python3 py3-pip bash
-RUN pip3 install --no-cache-dir flask==3.0.3
+RUN apk add --no-cache python3 bash py3-flask
 
 WORKDIR /app
 COPY app.py /app/app.py
