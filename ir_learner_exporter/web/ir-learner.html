@@ -107,6 +107,28 @@
       border: 1px solid var(--line);
       border-radius: 12px;
     }
+    .mat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+      max-height: 250px;
+      overflow: auto;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #0f172a;
+    }
+    .mat-item {
+      background: #111827;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 8px;
+      font-size: 11px;
+      line-height: 1.3;
+      color: #f8fafc;
+      word-break: break-word;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -255,6 +277,11 @@ Swing</textarea>
         <tbody id="commandsBody"></tbody>
       </table>
     </div>
+
+    <section class="card stack" id="matrixVisualization" style="display:none;">
+      <h2>Visualisation matrice</h2>
+      <div class="mat-grid" id="matGrid"></div>
+    </section>
   </section>
 </div>
 
@@ -293,6 +320,34 @@ function render() {
 
   const filled = commands.filter(c => (c.code || '').trim()).length;
   $('status').innerHTML = `${commands.length} commande(s), ${filled} remplie(s), ${commands.length - filled} vide(s).`;
+}
+
+function visualizeMatrix(list) {
+  const viz = $('matrixVisualization');
+  const grid = $('matGrid');
+
+  if (!list.length) {
+    viz.style.display = 'none';
+    grid.innerHTML = '';
+    return;
+  }
+
+  viz.style.display = 'block';
+  grid.innerHTML = list.slice(0, 300).map(item => `
+    <div class="mat-item">
+      <strong>${esc(item.name)}</strong><br>
+      ${item.code ? `<code>${esc(item.code)}</code>` : '<span class="warn">vide</span>'}
+    </div>
+  `).join('');
+
+  if (list.length > 300) {
+    const more = document.createElement('div');
+    more.style.gridColumn = '1 / -1';
+    more.style.color = '#cbd5e1';
+    more.style.fontSize = '12px';
+    more.textContent = `${list.length - 300} autres commandes non affichées`;
+    grid.appendChild(more);
+  }
 }
 
 window.editCmd = i => {
@@ -360,6 +415,7 @@ $('generateMatrixBtn').onclick = async () => {
 
   $('matrixStatus').innerHTML = `<span class="ok">${j.count} combinaisons générées.</span>`;
   render();
+  visualizeMatrix(commands);
 };
 
 $('importBtn').onclick = async () => {
