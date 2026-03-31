@@ -1,0 +1,30 @@
+check_updates:
+  description: Check for SmartIR updates.
+update_component:
+  description: Update SmartIR component.
+create_ir_code:
+  description: Create a new IR code file.
+  fields:
+    platform:
+      description: The platform (climate, fan, light, media_player).
+      example: climate
+      required: true
+      selector:
+        select:
+          options:
+            - climate
+            - fan
+            - light
+            - media_player
+    code:
+      description: The device code (e.g., 1133).
+      example: 1133
+      required: true
+      selector:
+        text:
+    data:
+      description: The JSON data for the IR code.
+      example: '{"commands": {"on": "IR_CODE"}}'
+      required: true
+      selector:
+        textarea:

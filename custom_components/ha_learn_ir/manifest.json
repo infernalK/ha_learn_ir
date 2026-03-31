@@ -1,0 +1,27 @@
+{
+  "domain": "ha_learn_ir",
+  "name": "HA Learn IR",
+  "codeowners": [
+    "@user"
+  ],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/user/ha_learn_ir",
+  "homeassistant": "2024.6.0",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/user/ha_learn_ir/issues",
+  "requirements": [
+    "aiofiles>=23.1.0"
+  ],
+  "version": "0.1.0",
+  "frontend": {
+    "panel": {
+      "name": "ha_learn_ir_panel",
+      "title": "HA Learn IR",
+      "url_path": "ha_learn_ir",
+      "module_url": "frontend/panel.js",
+      "embed_iframe": false,
+      "require_admin": true
+    }
+  }
+}
