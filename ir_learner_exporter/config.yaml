@@ -1,10 +1,7 @@
 name: "IR Learner Exporter"
-version: "0.2.0"
+version: "0.2.1"
 slug: "ir_learner_exporter"
-description: >-
-  Interface web Ingress pour apprendre des codes IR, générer automatiquement
-  des combinaisons clim, importer/exporter un JSON type Broadlink/AC.
-url: "https://github.com/TON_USER/TON_REPO"
+description: "UI Ingress pour générer un JSON de codes IR"
 arch:
   - amd64
   - aarch64
@@ -25,18 +22,12 @@ map:
     read_only: false
   - type: data
 
-ports:
-  8099/tcp: null
-
-ports_description:
-  8099/tcp: Web UI interne utilisée par Ingress
-
 options:
-  export_filename: learned_codes.json
+  export_filename: "learned_codes.json"
   default_manufacturer: ""
-  default_supported_controller: Broadlink
+  default_supported_controller: "Broadlink"
 
 schema:
   export_filename: str
-  default_manufacturer: "str?"
-  default_supported_controller: "list(Broadlink)"
+  default_manufacturer: str?
+  default_supported_controller: str
