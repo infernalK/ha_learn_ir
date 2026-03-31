@@ -124,69 +124,81 @@ def import_json():
 
 @app.post("/api/export")
 def export_json():
-    payload = request.get_json(force=True)
+    try:
+        payload = request.get_json(force=True)
 
-    manufacturer = str(payload.get("manufacturer", "")).strip()
-    supported_models = normalize_lines(payload.get("supportedModels"))
-    operation_modes = normalize_lines(payload.get("operationModes"))
-    fan_modes = normalize_lines(payload.get("fanModes"))
-    swing_modes = normalize_lines(payload.get("swingModes"))
-    commands_in = payload.get("commands", [])
+        manufacturer = str(payload.get("manufacturer", "")).strip()
+        supported_models = normalize_lines(payload.get("supportedModels"))
+        operation_modes = normalize_lines(payload.get("operationModes"))
+        fan_modes = normalize_lines(payload.get("fanModes"))
+        swing_modes = normalize_lines(payload.get("swingModes"))
+        commands_in = payload.get("commands", [])
 
-    export = {
-        "manufacturer": manufacturer,
-        "supportedModels": supported_models,
-        "commandsEncoding": "Base64",
-        "supportedController": DEFAULT_SUPPORTED_CONTROLLER,
-        "minTemperature": int(payload.get("minTemperature", 16)),
-        "maxTemperature": int(payload.get("maxTemperature", 31)),
-        "precision": int(payload.get("precision", 1)),
-        "operationModes": operation_modes,
-        "fanModes": fan_modes,
-        "swingModes": swing_modes,
-        "commands": {},
-    }
+        export = {
+            "manufacturer": manufacturer,
+            "supportedModels": supported_models,
+            "commandsEncoding": "Base64",
+            "supportedController": DEFAULT_SUPPORTED_CONTROLLER,
+            "minTemperature": int(payload.get("minTemperature", 16)),
+            "maxTemperature": int(payload.get("maxTemperature", 31)),
+            "precision": int(payload.get("precision", 1)),
+            "operationModes": operation_modes,
+            "fanModes": fan_modes,
+            "swingModes": swing_modes,
+            "commands": {},
+        }
 
-    for entry in commands_in:
-        name = str(entry.get("name", "")).strip()
-        code = str(entry.get("code", "")).strip()
-        if not name:
-            continue
-        export["commands"][slugify(name)] = code
+        for entry in commands_in:
+            name = str(entry.get("name", "")).strip()
+            code = str(entry.get("code", "")).strip()
+            if not name:
+                continue
+            export["commands"][slugify(name)] = code
 
-    filename = str(payload.get("filename") or EXPORT_FILENAME).strip() or EXPORT_FILENAME
-    if not filename.lower().endswith(".json"):
-        filename += ".json"
+        filename = str(payload.get("filename") or EXPORT_FILENAME).strip() or EXPORT_FILENAME
+        if not filename.lower().endswith(".json"):
+            filename += ".json"
 
-    public_path = PUBLIC_DIR / filename
-    data_path = DATA_DIR / filename
-    latest_path = PUBLIC_DIR / "latest.json"
+        public_path = PUBLIC_DIR / filename
+        data_path = DATA_DIR / filename
+        latest_path = PUBLIC_DIR / "latest.json"
 
-    text = json.dumps(export, ensure_ascii=False, indent=2)
+        text = json.dumps(export, ensure_ascii=False, indent=2)
 
-    public_path.write_text(text, encoding="utf-8")
-    data_path.write_text(text, encoding="utf-8")
-    latest_path.write_text(text, encoding="utf-8")
+        print(f"[DEBUG] Writing to: {public_path}")
+        public_path.write_text(text, encoding="utf-8")
+        print(f"[DEBUG] File written successfully: {public_path.exists()}")
+        
+        data_path.write_text(text, encoding="utf-8")
+        latest_path.write_text(text, encoding="utf-8")
 
-    manifest = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-        "filename": filename,
-        "public_path": str(public_path),
-        "data_path": str(data_path),
-        "command_count": len(export["commands"]),
-    }
+        manifest = {
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "filename": filename,
+            "public_path": str(public_path),
+            "data_path": str(data_path),
+            "command_count": len(export["commands"]),
+        }
 
-    (DATA_DIR / "last_export.json").write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=2),
-        encoding="utf-8"
-    )
+        (DATA_DIR / "last_export.json").write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2),
+            encoding="utf-8"
+        )
 
-    return jsonify({
-        "ok": True,
-        "filename": filename,
-        "command_count": len(export["commands"]),
-        "public_path": str(public_path)
-    })
+        return jsonify({
+            "ok": True,
+            "filename": filename,
+            "command_count": len(export["commands"]),
+            "public_path": str(public_path)
+        })
+    except Exception as e:
+        print(f"[ERROR] Export failed: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "ok": False,
+            "error": str(e)
+        }), 500
 
 
 @app.post("/api/learn")
