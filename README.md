@@ -1,53 +1,79 @@
-# AR Smart IR
+# IR Learner Exporter
 
-[![GitHub release](https://img.shields.io/github/v/release/marsh4200/ar_smart_ir.svg)](https://github.com/marsh4200/ar_smart_ir/releases)
-[![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
+[![GitHub release](https://img.shields.io/github/v/release/user/ha_learn_ir.svg)](https://github.com/user/ha_learn_ir/releases)
 
-
-[![Add to HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](
-  https://my.home-assistant.io/redirect/hacs_repository/?owner=marsh4200&repository=ar_smart_ir&category=integration
-)
-
-Built for modern Home Assistant systems, **AR Smart IR removes the need for YAML configuration** and allows devices to be added directly through the **Integrations UI**.
+Addon Home Assistant pour apprendre et exporter des codes IR.
 
 ---
 
-# ✨ Features
+# ✨ Fonctionnalités
 
-- 🌡️ Control **climate devices** (air conditioners)
-- 📺 Control **media players** (TVs, projectors, receivers)
-- 🌀 Control **fans**
-- 💡 Control **lights**
-- ⚙️ Uses modern **Config Flow**
-- 🖥️ Setup directly from **Home Assistant UI**
-- 🚫 **No YAML configuration required**
-- ⚡ Updated compatibility with modern Home Assistant versions
-- 📡 Uses a **local IR codes database**
+- 🌡️ Interface web pour saisir les métadonnées des appareils IR
+- 📺 Ajouter des commandes IR encodées en Base64
+- 🌀 Exporter des fichiers JSON compatibles avec les intégrations IR
+- 💡 Point d'intégration pour backends d'apprentissage IR réels
+- ⚙️ Accès via la barre latérale Home Assistant (Ingress)
+- 🖥️ Interface moderne et responsive
 
 ---
 
-# 🚀 Supported Controller Methods
+# 🚀 Installation
 
-AR Smart IR works with multiple IR transmitters supported by Home Assistant:
-
-- **ESPHome IR transmitters**
-- **MQTT publish services**
-- **Broadlink IR controllers**
-- **Xiaomi IR Remote**
-- Other compatible **Home Assistant remote platforms**
+1. Ajouter ce dépôt à votre installation Home Assistant Add-ons
+2. Installer l'addon "IR Learner Exporter"
+3. Démarrer l'addon
+4. Ouvrir l'interface via "OPEN WEB UI" ou la barre latérale
 
 ---
 
-# 🆕 What Makes AR Smart IR Different?
+# 📋 Utilisation
 
-AR Smart IR modernizes legacy infrared integrations by removing complex setup steps.
+1. Saisir les informations du fabricant et des modèles
+2. Ajouter des commandes IR (manuellement ou via apprentissage)
+3. Générer le fichier JSON exporté dans `/config/`
 
-### Improvements
+---
 
-- ✅ No more `configuration.yaml`
-- ✅ Setup through **Settings → Devices & Services**
-- ✅ Modern **Config Flow installation**
-- ✅ Cleaner integration structure
+# 🔧 Configuration Backend
+
+Le bouton "Apprendre" appelle `/api/learn` - reliez-le à votre backend IR réel :
+
+- Broadlink Python
+- ESPHome IR receiver
+- MQTT bridge
+- Commande shell
+
+---
+
+# 📁 Structure des fichiers exportés
+
+```json
+{
+  "manufacturer": "Mitsubishi Electric",
+  "supportedModels": ["MSXY-FN10VE"],
+  "commandsEncoding": "Base64",
+  "supportedController": "Broadlink",
+  "minTemperature": 16,
+  "maxTemperature": 31,
+  "precision": 1,
+  "operationModes": ["cool", "dry", "fanonly"],
+  "fanModes": ["Auto", "Low", "Mid", "High"],
+  "swingModes": ["Auto", "Top", "Mid", "Bottom"],
+  "commands": {
+    "off": "JgBQAAABK5MUNhMSExITEhMSExITEhMSExITEhMSExITEhMSExITEhMSExITEhMSExITEhMSExITEhMSExITEhMSExITEhMSExITEhMSEwAFGQABK0kTAA0FAAAAAAAAAAA=",
+    "cool_24_auto_auto": "JgBQAAABKpQTEhQRFBIUEhMSExITEhMSExITEhMSExITEhMSExITEhMSExITEhMSExITEhMSExITEhMSExITEhMSExITEhMSExITEhQRFQAFGQABKUkUAA0FAAAAAAAAAAA="
+  }
+}
+```
+
+---
+
+# 🆕 Différences avec les intégrations classiques
+
+- ✅ Interface web moderne via Ingress
+- ✅ Pas de configuration YAML
+- ✅ Export direct de fichiers JSON
+- ✅ Intégration facile avec backends IR personnalisés
 - ✅ Better compatibility with newer Home Assistant versions
 - ✅ Faster async processing
 - ✅ Easier installation for users and installers
