@@ -1,7 +1,0 @@
-{
-  "name": "Learn IR",
-  "content_in_root": false,
-  "render_readme": true,
-  "domains": ["ha_learn_ir"],
-  "homeassistant": "2024.6.0"
-}
