@@ -385,37 +385,49 @@ $('exampleBtn').onclick = () => {
 };
 
 $('generateMatrixBtn').onclick = async () => {
-  const payload = {
-    minTemperature: Number($('minTemperature').value || 16),
-    maxTemperature: Number($('maxTemperature').value || 31),
-    precision: Number($('precision').value || 1),
-    operationModes: lines('operationModes'),
-    fanModes: lines('fanModes'),
-    swingModes: lines('swingModes'),
-    includeOff: true,
-    includeIFeelAutoAuto: true
-  };
+  try {
+    const payload = {
+      minTemperature: Number($('minTemperature').value || 16),
+      maxTemperature: Number($('maxTemperature').value || 31),
+      precision: Number($('precision').value || 1),
+      operationModes: lines('operationModes'),
+      fanModes: lines('fanModes'),
+      swingModes: lines('swingModes'),
+      includeOff: true,
+      includeIFeelAutoAuto: true
+    };
 
-  const r = await fetch('/api/generate_matrix', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
+    console.log('Générer matrice payload', payload);
 
-  const j = await r.json();
-  const previous = new Map(commands.map(c => [c.name, c.code]));
-
-  commands.length = 0;
-  j.commands.forEach(c => {
-    commands.push({
-      name: c.name,
-      code: previous.get(c.name) || ''
+    const r = await fetch('/api/generate_matrix', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     });
-  });
 
-  $('matrixStatus').innerHTML = `<span class="ok">${j.count} combinaisons générées.</span>`;
-  render();
-  visualizeMatrix(commands);
+    if (!r.ok) {
+      const text = await r.text();
+      throw new Error(`HTTP ${r.status} ${r.statusText}: ${text}`);
+    }
+
+    const j = await r.json();
+    const previous = new Map(commands.map(c => [c.name, c.code]));
+
+    commands.length = 0;
+    j.commands.forEach(c => {
+      commands.push({
+        name: c.name,
+        code: previous.get(c.name) || ''
+      });
+    });
+
+    $('matrixStatus').innerHTML = `<span class="ok">${j.count} combinaisons générées.</span>`;
+    render();
+    visualizeMatrix(commands);
+  } catch (error) {
+    console.error('Erreur generateMatrixBtn:', error);
+    $('matrixStatus').innerHTML = `<span class="warn">Erreur: ${esc(error.message)}</span>`;
+  }
 };
 
 $('importBtn').onclick = async () => {
