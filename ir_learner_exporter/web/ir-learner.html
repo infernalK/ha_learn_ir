@@ -231,7 +231,12 @@ Swing</textarea>
       <h2>Import / apprentissage</h2>
 
       <div>
-        <label>Importer un JSON existant</label>
+        <label>Charger un fichier JSON</label>
+        <input type="file" id="importFile" accept=".json">
+      </div>
+
+      <div>
+        <label>Ou coller un JSON existant</label>
         <textarea id="importJson" placeholder="Colle ici un JSON existant pour le réimporter"></textarea>
       </div>
 
@@ -432,8 +437,18 @@ $('generateMatrixBtn').onclick = async () => {
 };
 
 $('importBtn').onclick = async () => {
-  const raw = $('importJson').value.trim();
-  if (!raw) return;
+  let raw = $('importJson').value.trim();
+
+  if (!raw) {
+    const fileInput = $('importFile');
+    if (fileInput.files.length > 0) {
+      const file = fileInput.files[0];
+      raw = await file.text();
+    } else {
+      $('matrixStatus').innerHTML = '<span class="warn">Aucun JSON fourni (coller ou sélectionner un fichier).</span>';
+      return;
+    }
+  }
 
   const r = await fetch(`${API_BASE}/import`, {
     method: 'POST',
