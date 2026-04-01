@@ -527,7 +527,13 @@ $('loadGeneratedBtn').onclick = async () => {
   }
 
   if (j.data) {
-    await applyImportedData(j.data);
+    const r2 = await fetch(`${API_BASE}/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ json: JSON.stringify(j.data) })
+    });
+    const j2 = await r2.json();
+    await applyImportedData(j2);
     $('matrixStatus').innerHTML = `<span class="ok">Fichier ${esc(filename)} chargé.</span>`;
   } else {
     $('matrixStatus').innerHTML = '<span class="warn">Données manquantes dans la réponse du serveur.</span>';

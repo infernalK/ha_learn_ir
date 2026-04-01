@@ -244,7 +244,6 @@ def export_json():
 
         public_path = PUBLIC_DIR / filename
         data_path = DATA_DIR / filename
-        latest_path = PUBLIC_DIR / "latest.json"
 
         text = json.dumps(export, ensure_ascii=False, indent=2)
 
@@ -261,28 +260,6 @@ def export_json():
                 written[str(path)] = False
                 errors.append(f"{path}: {exc}")
                 print(f"[ERROR] Could not write file {path}: {exc}")
-
-        try:
-            latest_path.parent.mkdir(parents=True, exist_ok=True)
-            latest_path.write_text(text, encoding="utf-8")
-            written[str(latest_path)] = True
-        except Exception as exc:
-            written[str(latest_path)] = False
-            errors.append(f"{latest_path}: {exc}")
-            print(f"[ERROR] Could not write latest.json {latest_path}: {exc}")
-
-        manifest = {
-            "generated_at": datetime.now(timezone.utc).isoformat(),
-            "filename": filename,
-            "public_path": str(public_path),
-            "data_path": str(data_path),
-            "command_count": len(export["commands"]),
-        }
-
-        (DATA_DIR / "last_export.json").write_text(
-            json.dumps(manifest, ensure_ascii=False, indent=2),
-            encoding="utf-8"
-        )
 
         return jsonify({
             "ok": True,
