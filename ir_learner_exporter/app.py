@@ -123,7 +123,28 @@ def import_json():
     data = json.loads(raw)
     commands_map = data.get("commands", {}) or {}
 
-    commands = [{"name": k, "code": v} for k, v in commands_map.items()]
+    commands = []
+    if "off" in commands_map:
+        commands.append({"name": "off", "code": commands_map["off"]})
+
+    for mode, mode_data in commands_map.items():
+        if mode == "off":
+            continue
+        if isinstance(mode_data, dict):
+            for fan, fan_data in mode_data.items():
+                if isinstance(fan_data, dict):
+                    for swing, swing_data in fan_data.items():
+                        if isinstance(swing_data, dict):
+                            for temp, code in swing_data.items():
+                                name = f"{mode}_{temp}_{fan.lower()}_{swing.lower()}"
+                                commands.append({"name": name, "code": code})
+                        else:
+                            # if not dict, perhaps flat
+                            commands.append({"name": f"{mode}_{fan.lower()}_{swing.lower()}", "code": swing_data})
+                else:
+                    commands.append({"name": f"{mode}_{fan.lower()}", "code": fan_data})
+        else:
+            commands.append({"name": mode, "code": mode_data})
 
     response = {
         "manufacturer": data.get("manufacturer", ""),
@@ -167,12 +188,32 @@ def export_json():
             "commands": {},
         }
 
+        commands = export["commands"]
+
         for entry in commands_in:
             name = str(entry.get("name", "")).strip()
             code = str(entry.get("code", "")).strip()
-            if not name:
+            if not name or not code:
                 continue
-            export["commands"][slugify(name)] = code
+            if name == "off":
+                commands["off"] = code
+                continue
+            parts = name.split("_")
+            if len(parts) == 4:
+                mode, temp, fan, swing = parts
+                mode = mode.lower()
+                fan = fan.title()
+                swing = swing.title()
+                if mode not in commands:
+                    commands[mode] = {}
+                if fan not in commands[mode]:
+                    commands[mode][fan] = {}
+                if swing not in commands[mode][fan]:
+                    commands[mode][fan][swing] = {}
+                commands[mode][fan][swing][temp] = code
+            else:
+                # fallback for other names
+                commands[name] = code
 
         filename = str(payload.get("filename") or EXPORT_FILENAME).strip() or EXPORT_FILENAME
         if not filename.lower().endswith(".json"):
