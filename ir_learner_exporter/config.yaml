@@ -1,5 +1,5 @@
 name: "IR Learner Exporter"
-version: "0.2.19"
+version: "0.2.20"
 slug: "ir_learner_exporter"
 description: "UI Ingress pour générer un JSON de codes IR"
 arch:
