@@ -97,9 +97,6 @@ def generate_matrix():
     if include_off:
         combos.append({"name": "off", "code": ""})
 
-    if include_ifeel:
-        combos.append({"name": "ifeel_auto_auto", "code": ""})
-
     temps = list(range(min_t, max_t + 1, precision))
 
     for mode, temp, fan, swing in product(modes, temps, fan_modes, swing_modes):
