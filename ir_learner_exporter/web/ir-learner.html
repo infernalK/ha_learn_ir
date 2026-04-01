@@ -445,6 +445,29 @@ $('generateMatrixBtn').onclick = async () => {
   }
 };
 
+async function applyImportedData(j) {
+  if (!j || !j.commands) {
+    $('matrixStatus').innerHTML = '<span class="warn">JSON importé invalide ou sans commandes.</span>';
+    return;
+  }
+
+  $('manufacturer').value = j.manufacturer || '';
+  $('supportedModels').value = (j.supportedModels || []).join('\n');
+  $('minTemperature').value = j.minTemperature || 16;
+  $('maxTemperature').value = j.maxTemperature || 31;
+  $('precision').value = j.precision || 1;
+  $('operationModes').value = (j.operationModes || []).join('\n');
+  $('fanModes').value = (j.fanModes || []).join('\n');
+  $('swingModes').value = (j.swingModes || []).join('\n');
+
+  commands.length = 0;
+  (j.commands || []).forEach(c => commands.push(c));
+
+  $('matrixStatus').innerHTML = `<span class="ok">Import OK : ${commands.length} commandes.</span>`;
+  render();
+  visualizeMatrix(commands);
+}
+
 $('importBtn').onclick = async () => {
   let raw = $('importJson').value.trim();
 
@@ -466,21 +489,7 @@ $('importBtn').onclick = async () => {
   });
 
   const j = await r.json();
-
-  $('manufacturer').value = j.manufacturer || '';
-  $('supportedModels').value = (j.supportedModels || []).join('\n');
-  $('minTemperature').value = j.minTemperature || 16;
-  $('maxTemperature').value = j.maxTemperature || 31;
-  $('precision').value = j.precision || 1;
-  $('operationModes').value = (j.operationModes || []).join('\n');
-  $('fanModes').value = (j.fanModes || []).join('\n');
-  $('swingModes').value = (j.swingModes || []).join('\n');
-
-  commands.length = 0;
-  (j.commands || []).forEach(c => commands.push(c));
-
-  $('matrixStatus').innerHTML = `<span class="ok">Import OK : ${commands.length} commandes.</span>`;
-  render();
+  await applyImportedData(j);
 };
 
 async function refreshGeneratedFiles() {
@@ -517,9 +526,12 @@ $('loadGeneratedBtn').onclick = async () => {
     return;
   }
 
-  $('importJson').value = j.json || '';
-  $('importBtn').onclick();
-  $('matrixStatus').innerHTML = `<span class="ok">Fichier ${esc(filename)} chargé.</span>`;
+  if (j.data) {
+    await applyImportedData(j.data);
+    $('matrixStatus').innerHTML = `<span class="ok">Fichier ${esc(filename)} chargé.</span>`;
+  } else {
+    $('matrixStatus').innerHTML = '<span class="warn">Données manquantes dans la réponse du serveur.</span>';
+  }
 };
 
 $('findNextEmptyBtn').onclick = () => {

@@ -94,8 +94,11 @@ def load_file():
         return jsonify({"ok": False, "error": "Fichier introuvable"}), 404
 
     try:
-        content = path.read_text(encoding="utf-8")
-        return jsonify({"ok": True, "filename": filename, "json": content})
+        raw = path.read_text(encoding="utf-8")
+        data = json.loads(raw)
+        return jsonify({"ok": True, "filename": filename, "data": data})
+    except json.JSONDecodeError as e:
+        return jsonify({"ok": False, "error": f"JSON invalide: {e}"}), 400
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
