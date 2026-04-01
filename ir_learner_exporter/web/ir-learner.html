@@ -462,6 +462,7 @@ async function applyImportedData(j) {
   $('fanModes').value = (j.fanModes || []).join('\n');
   $('swingModes').value = (j.swingModes || []).join('\n');
   $('includeSwing').checked = Array.isArray(j.swingModes) && j.swingModes.length > 0;
+  updateSwingSectionVisibility();
 
   commands.length = 0;
   (j.commands || []).forEach(c => commands.push(c));
