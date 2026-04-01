@@ -219,6 +219,11 @@ Swing</textarea>
         </div>
       </div>
 
+      <div style="display:flex; align-items:center; gap:8px;">
+        <input type="checkbox" id="includeSwing" checked>
+        <label for="includeSwing" style="margin:0;">Inclure la dimension Swing dans la matrice</label>
+      </div>
+
       <div class="toolbar">
         <button class="btn" id="generateMatrixBtn">Générer la matrice</button>
         <button class="btn secondary" id="exampleBtn">Charger un exemple</button>
@@ -401,13 +406,14 @@ $('exampleBtn').onclick = () => {
 
 $('generateMatrixBtn').onclick = async () => {
   try {
+    const includeSwing = $('includeSwing').checked;
     const payload = {
       minTemperature: Number($('minTemperature').value || 16),
       maxTemperature: Number($('maxTemperature').value || 31),
       precision: Number($('precision').value || 1),
       operationModes: lines('operationModes'),
       fanModes: lines('fanModes'),
-      swingModes: lines('swingModes'),
+      swingModes: includeSwing ? lines('swingModes') : [],
       includeOff: true,
       includeIFeelAutoAuto: true
     };

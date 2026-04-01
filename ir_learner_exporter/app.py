@@ -37,8 +37,11 @@ def normalize_lines(value):
     return [line.strip() for line in str(value).splitlines() if line.strip()]
 
 
-def build_combo_name(mode, temperature, fan, swing):
-    return "_".join([slugify(mode), str(int(temperature)), slugify(fan), slugify(swing)])
+def build_combo_name(mode, temperature, fan, swing=None):
+    parts = [slugify(mode), str(int(temperature)), slugify(fan)]
+    if swing is not None and str(swing).strip() != "":
+        parts.append(slugify(swing))
+    return "_".join(parts)
 
 
 @app.get("/")
@@ -123,13 +126,26 @@ def generate_matrix():
     if include_off:
         combos.append({"name": "off", "code": ""})
 
+    if include_ifeel:
+        if swing_modes:
+            combos.append({"name": "ifeel_auto_auto", "code": ""})
+        else:
+            combos.append({"name": "ifeel_auto", "code": ""})
+
     temps = list(range(min_t, max_t + 1, precision))
 
-    for mode, temp, fan, swing in product(modes, temps, fan_modes, swing_modes):
-        combos.append({
-            "name": build_combo_name(mode, temp, fan, swing),
-            "code": ""
-        })
+    if swing_modes:
+        for mode, temp, fan, swing in product(modes, temps, fan_modes, swing_modes):
+            combos.append({
+                "name": build_combo_name(mode, temp, fan, swing),
+                "code": ""
+            })
+    else:
+        for mode, temp, fan in product(modes, temps, fan_modes):
+            combos.append({
+                "name": build_combo_name(mode, temp, fan),
+                "code": ""
+            })
 
     return jsonify({
         "ok": True,
@@ -162,9 +178,11 @@ def import_json():
                                 name = f"{mode}_{temp}_{fan.lower()}_{swing.lower()}"
                                 commands.append({"name": name, "code": code})
                         else:
-                            # if not dict, perhaps flat
-                            commands.append({"name": f"{mode}_{fan.lower()}_{swing.lower()}", "code": swing_data})
+                            # no swing, it's mode->fan->temp
+                            temp = str(swing).strip()
+                            commands.append({"name": f"{mode}_{temp}_{fan.lower()}", "code": swing_data})
                 else:
+                    # no swing, maybe mode->fan directly
                     commands.append({"name": f"{mode}_{fan.lower()}", "code": fan_data})
         else:
             commands.append({"name": mode, "code": mode_data})
