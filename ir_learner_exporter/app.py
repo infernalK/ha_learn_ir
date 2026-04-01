@@ -8,12 +8,12 @@ from itertools import product
 
 app = Flask(__name__, static_folder="web", static_url_path="")
 
-PUBLIC_DIR = Path(os.environ.get("PUBLIC_DIR", "/homeassistant/.storage"))
+PUBLIC_DIR = Path(os.environ.get("PUBLIC_DIR", "/config"))
 if not PUBLIC_DIR.exists():
-    PUBLIC_DIR = Path("/homeassistant/.storage")
+    PUBLIC_DIR = Path("/config")
 
 # DATA_DIR is not used for primary written JSON in this mode
-DATA_DIR = Path(os.environ.get("DATA_DIR", "/homeassistant"))
+DATA_DIR = Path(os.environ.get("DATA_DIR", "/config"))
 
 EXPORT_FILENAME = os.environ.get("EXPORT_FILENAME", "learned_codes.json")
 DEFAULT_MANUFACTURER = os.environ.get("DEFAULT_MANUFACTURER", "")
@@ -181,14 +181,13 @@ def export_json():
         public_path = PUBLIC_DIR / filename
         data_path = DATA_DIR / filename
         latest_path = PUBLIC_DIR / "latest.json"
-        fallback_path = Path.cwd() / filename
 
         text = json.dumps(export, ensure_ascii=False, indent=2)
 
         written = {}
         errors = []
 
-        for path in [public_path, data_path, fallback_path]:
+        for path in [public_path, data_path]:
             try:
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text(text, encoding="utf-8")
@@ -227,7 +226,6 @@ def export_json():
             "command_count": len(export["commands"]),
             "public_path": str(public_path),
             "data_path": str(data_path),
-            "fallback_path": str(fallback_path),
             "written": written,
             "errors": errors,
         })
