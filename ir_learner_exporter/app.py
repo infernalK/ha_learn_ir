@@ -77,6 +77,29 @@ def paths():
     })
 
 
+@app.get("/api/files")
+def list_files():
+    files = [p.name for p in PUBLIC_DIR.glob("*.json") if p.is_file()]
+    return jsonify({"ok": True, "files": sorted(files)})
+
+
+@app.get("/api/load")
+def load_file():
+    filename = str(request.args.get("filename", "")).strip()
+    if not filename or any(c in filename for c in ['..', '/', '\\']):
+        return jsonify({"ok": False, "error": "Nom de fichier invalide"}), 400
+
+    path = PUBLIC_DIR / filename
+    if not path.exists() or not path.is_file():
+        return jsonify({"ok": False, "error": "Fichier introuvable"}), 404
+
+    try:
+        content = path.read_text(encoding="utf-8")
+        return jsonify({"ok": True, "filename": filename, "json": content})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.post("/api/generate_matrix")
 def generate_matrix():
     payload = request.get_json(force=True)

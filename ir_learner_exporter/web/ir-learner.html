@@ -231,7 +231,16 @@ Swing</textarea>
       <h2>Import / apprentissage</h2>
 
       <div>
-        <label>Charger un fichier JSON</label>
+        <label>Charger un fichier généré (depuis /config)</label>
+        <div style="display:flex; gap:8px; flex-wrap: wrap; align-items: center;">
+          <select id="generatedFileSelect" style="min-width:220px;"></select>
+          <button class="btn secondary" id="reloadFilesBtn" style="width:auto;">Actualiser</button>
+          <button class="btn" id="loadGeneratedBtn" style="width:auto;">Charger fichier</button>
+        </div>
+      </div>
+
+      <div>
+        <label>Charger un fichier local (.json)</label>
         <input type="file" id="importFile" accept=".json">
       </div>
 
@@ -474,6 +483,45 @@ $('importBtn').onclick = async () => {
   render();
 };
 
+async function refreshGeneratedFiles() {
+  try {
+    const r = await fetch(`${API_BASE}/files`);
+    const j = await r.json();
+    const select = $('generatedFileSelect');
+    select.innerHTML = '';
+
+    if (!j.ok || !Array.isArray(j.files) || j.files.length === 0) {
+      select.innerHTML = '<option value="">(aucun fichier trouvé)</option>';
+      return;
+    }
+
+    select.innerHTML = '<option value="">-- Choisir un fichier --</option>' + j.files.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join('');
+  } catch (error) {
+    console.error('Erreur refreshGeneratedFiles:', error);
+  }
+}
+
+$('reloadFilesBtn').onclick = refreshGeneratedFiles;
+
+$('loadGeneratedBtn').onclick = async () => {
+  const filename = $('generatedFileSelect').value;
+  if (!filename) {
+    $('matrixStatus').innerHTML = '<span class="warn">Veuillez sélectionner un fichier JSON généré.</span>';
+    return;
+  }
+
+  const r = await fetch(`${API_BASE}/load?filename=${encodeURIComponent(filename)}`);
+  const j = await r.json();
+  if (!j.ok) {
+    $('matrixStatus').innerHTML = `<span class="warn">Erreur chargement: ${esc(j.error || 'inconnu')}</span>`;
+    return;
+  }
+
+  $('importJson').value = j.json || '';
+  $('importBtn').onclick();
+  $('matrixStatus').innerHTML = `<span class="ok">Fichier ${esc(filename)} chargé.</span>`;
+};
+
 $('findNextEmptyBtn').onclick = () => {
   const next = commands.find(c => !(c.code || '').trim());
   if (!next) {
@@ -527,9 +575,11 @@ $('exportBtn').onclick = async () => {
 
   const j = await r.json();
   $('status').innerHTML = `<span class="ok">JSON généré : ${esc(j.filename)} — ${j.command_count} commande(s) — chemin : ${esc(j.public_path)}</span>`;
+  await refreshGeneratedFiles();
 };
 
 render();
+refreshGeneratedFiles();
 </script>
 </body>
 </html>
