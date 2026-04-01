@@ -209,19 +209,20 @@ Low
 Mid
 High</textarea>
         </div>
-        <div>
-          <label>Swing</label>
-          <textarea id="swingModes">Auto
+      </div>
+
+      <div style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+        <input type="checkbox" id="includeSwing" checked>
+        <label for="includeSwing" style="margin:0;">Inclure la dimension Swing dans la matrice</label>
+      </div>
+
+      <div id="swingSection" style="margin-top:8px;">
+        <label>Swing</label>
+        <textarea id="swingModes">Auto
 Top
 Mid
 Bottom
 Swing</textarea>
-        </div>
-      </div>
-
-      <div style="display:flex; align-items:center; gap:8px;">
-        <input type="checkbox" id="includeSwing" checked>
-        <label for="includeSwing" style="margin:0;">Inclure la dimension Swing dans la matrice</label>
       </div>
 
       <div class="toolbar">
@@ -401,12 +402,7 @@ $('exampleBtn').onclick = () => {
   $('operationModes').value = 'cool\ndry\nfanonly';
   $('fanModes').value = 'Auto\nLow\nMid\nHigh';
   $('swingModes').value = 'Auto\nTop\nMid\nBottom\nSwing';
-  $('matrixStatus').innerHTML = 'Exemple chargé.';
-};
-
-$('generateMatrixBtn').onclick = async () => {
-  try {
-    const includeSwing = $('includeSwing').checked;
+  $('includeSwing').checked = true;
     const payload = {
       minTemperature: Number($('minTemperature').value || 16),
       maxTemperature: Number($('maxTemperature').value || 31),
@@ -465,6 +461,7 @@ async function applyImportedData(j) {
   $('operationModes').value = (j.operationModes || []).join('\n');
   $('fanModes').value = (j.fanModes || []).join('\n');
   $('swingModes').value = (j.swingModes || []).join('\n');
+  $('includeSwing').checked = Array.isArray(j.swingModes) && j.swingModes.length > 0;
 
   commands.length = 0;
   (j.commands || []).forEach(c => commands.push(c));
@@ -473,6 +470,15 @@ async function applyImportedData(j) {
   render();
   visualizeMatrix(commands);
 }
+
+function updateSwingSectionVisibility() {
+  const swingSection = $('swingSection');
+  swingSection.style.display = $('includeSwing').checked ? 'block' : 'none';
+}
+
+$('includeSwing').addEventListener('change', updateSwingSectionVisibility);
+
+updateSwingSectionVisibility();
 
 $('importBtn').onclick = async () => {
   let raw = $('importJson').value.trim();
