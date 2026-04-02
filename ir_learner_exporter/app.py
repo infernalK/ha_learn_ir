@@ -12,8 +12,8 @@ PUBLIC_DIR = Path(os.environ.get("PUBLIC_DIR", "/config"))
 if not PUBLIC_DIR.exists():
     PUBLIC_DIR = Path("/config")
 
-# DATA_DIR is not used for primary written JSON in this mode
-DATA_DIR = Path(os.environ.get("DATA_DIR", "/config"))
+# By convention Home Assistant mounts `type: data` at `/data`.
+DATA_DIR = Path(os.environ.get("DATA_DIR", "/data"))
 
 EXPORT_FILENAME = os.environ.get("EXPORT_FILENAME", "learned_codes.json")
 DEFAULT_MANUFACTURER = os.environ.get("DEFAULT_MANUFACTURER", "")
@@ -82,8 +82,17 @@ def paths():
 
 @app.get("/api/files")
 def list_files():
-    files = [p.name for p in PUBLIC_DIR.glob("*.json") if p.is_file()]
-    return jsonify({"ok": True, "files": sorted(files)})
+    # Be tolerant: some setups may end up with files in either addon_config (/config)
+    # or the internal persistent dir (/data).
+    public_files = [p.name for p in PUBLIC_DIR.glob("*.json") if p.is_file()] if PUBLIC_DIR.exists() else []
+    data_files = [p.name for p in DATA_DIR.glob("*.json") if p.is_file()] if DATA_DIR.exists() else []
+    files = sorted(set(public_files) | set(data_files))
+    return jsonify({
+        "ok": True,
+        "files": files,
+        "public_dir": str(PUBLIC_DIR),
+        "data_dir": str(DATA_DIR),
+    })
 
 
 @app.get("/api/load")
@@ -92,14 +101,29 @@ def load_file():
     if not filename or any(c in filename for c in ['..', '/', '\\']):
         return jsonify({"ok": False, "error": "Nom de fichier invalide"}), 400
 
-    path = PUBLIC_DIR / filename
-    if not path.exists() or not path.is_file():
+    path_public = PUBLIC_DIR / filename
+    path_data = DATA_DIR / filename
+    chosen_path = None
+    chosen_dir = None
+
+    if path_public.exists() and path_public.is_file():
+        chosen_path = path_public
+        chosen_dir = "public"
+    elif path_data.exists() and path_data.is_file():
+        chosen_path = path_data
+        chosen_dir = "data"
+    else:
         return jsonify({"ok": False, "error": "Fichier introuvable"}), 404
 
     try:
-        raw = path.read_text(encoding="utf-8")
+        raw = chosen_path.read_text(encoding="utf-8")
         data = json.loads(raw)
-        return jsonify({"ok": True, "filename": filename, "data": data})
+        return jsonify({
+            "ok": True,
+            "filename": filename,
+            "source": chosen_dir,
+            "data": data
+        })
     except json.JSONDecodeError as e:
         return jsonify({"ok": False, "error": f"JSON invalide: {e}"}), 400
     except Exception as e:

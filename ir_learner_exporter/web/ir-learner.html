@@ -535,9 +535,15 @@ async function refreshGeneratedFiles() {
     select.innerHTML = '<option value="">Chargement…</option>';
   }
   if ($('filesStatus')) {
-    $('filesStatus').innerHTML = `Chargement des fichiers depuis <code>${esc(API_BASE + '/files')}</code>…`;
+    $('filesStatus').innerHTML = `Chargement des fichiers via <code>${esc(API_BASE)}</code>/api/*…`;
   }
   try {
+    let pathsJ = null;
+    try {
+      const rPaths = await fetch(`${API_BASE}/paths`);
+      pathsJ = await rPaths.json();
+    } catch (_) {}
+
     const r = await fetch(`${API_BASE}/files`);
     const j = await r.json();
     const select = $('generatedFileSelect');
@@ -545,13 +551,22 @@ async function refreshGeneratedFiles() {
 
     if (!j.ok || !Array.isArray(j.files) || j.files.length === 0) {
       select.innerHTML = '<option value="">(aucun fichier trouvé)</option>';
+      if ($('filesStatus')) {
+        const publicDir = j.public_dir || (pathsJ && pathsJ.public_dir) || '';
+        const dataDir = j.data_dir || (pathsJ && pathsJ.data_dir) || '';
+        $('filesStatus').innerHTML =
+          `0 fichier trouvé. Public: <code>${esc(publicDir || '?')}</code> — Data: <code>${esc(dataDir || '?')}</code>.`;
+      }
       return;
     }
 
     select.innerHTML = '<option value="">-- Choisir un fichier --</option>' + j.files.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join('');
     if ($('filesStatus')) {
       const count = Array.isArray(j.files) ? j.files.length : 0;
-      $('filesStatus').innerHTML = `${count} fichier(s) trouvés dans <code>${esc(API_BASE + '/files')}</code>.`;
+      const publicDir = j.public_dir || (pathsJ && pathsJ.public_dir) || '';
+      const dataDir = j.data_dir || (pathsJ && pathsJ.data_dir) || '';
+      $('filesStatus').innerHTML =
+        `${count} fichier(s) trouvés. Public: <code>${esc(publicDir || '?')}</code> — Data: <code>${esc(dataDir || '?')}</code>.`;
     }
   } catch (error) {
     console.error('Erreur refreshGeneratedFiles:', error);
