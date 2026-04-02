@@ -59,6 +59,7 @@
 
   // ----- Etat UI (commandes) -----
   var commands = [];
+  var remoteEntitiesById = {};
 
   function upsertCommand(name, code) {
     var i = commands.findIndex(function (c) {
@@ -70,6 +71,7 @@
 
   async function learnIr() {
     var lr = $("learnResult");
+    var learnBtn = $("learnBtn");
     var entityId = $("learnEntityId") ? $("learnEntityId").value.trim() : "";
     if (!entityId && $("learnEntitySelect")) {
       entityId = $("learnEntitySelect").value || "";
@@ -97,6 +99,14 @@
       if (lr)
         lr.innerHTML =
           '<span class="warn">Erreur: pour <code>remote.learn_command</code>, l’entité doit commencer par <code>remote.</code></span>';
+      return;
+    }
+    var selectedInfo = remoteEntitiesById[entityId];
+    if (selectedInfo && selectedInfo.available === false) {
+      if (lr)
+        lr.innerHTML =
+          '<span class="warn">Erreur: cette entité est indisponible (<code>unavailable</code>).</span>';
+      if (learnBtn) learnBtn.disabled = true;
       return;
     }
 
@@ -160,6 +170,7 @@
       }
 
       if (j.entities.length === 0) {
+        remoteEntitiesById = {};
         select.innerHTML = '<option value="">(aucune entité remote.* détectée)</option>';
         if (lr) {
           lr.innerHTML =
@@ -169,10 +180,14 @@
       }
 
       select.innerHTML = '<option value="">-- Choisir une entité remote.* --</option>';
+      remoteEntitiesById = {};
       j.entities.forEach(function (e) {
         var opt = document.createElement("option");
         opt.value = e.entity_id;
-        var suffix = e.supports_learn ? "" : " (sans LEARN_COMMAND)";
+        remoteEntitiesById[e.entity_id] = e;
+        var suffix = "";
+        if (!e.available) suffix += " (unavailable)";
+        if (!e.supports_learn) suffix += " (sans LEARN_COMMAND)";
         opt.textContent = `${e.name} (${e.entity_id})${suffix}`;
         select.appendChild(opt);
       });
@@ -181,6 +196,7 @@
       }
     } catch (e) {
       console.error("refreshRemoteEntities error:", e);
+      remoteEntitiesById = {};
       select.innerHTML = '<option value="">(erreur de chargement)</option>';
       if (lr) {
         lr.innerHTML =
@@ -633,7 +649,37 @@
       learnEntitySelect.onchange = function () {
         if (!learnEntitySelect.value) return;
         if ($("learnEntityId")) $("learnEntityId").value = learnEntitySelect.value;
+        var e = remoteEntitiesById[learnEntitySelect.value];
+        var lr = $("learnResult");
+        var learnBtn = $("learnBtn");
+        if (e && e.available === false) {
+          if (learnBtn) learnBtn.disabled = true;
+          if (lr) {
+            lr.innerHTML =
+              '<span class="warn">Entité indisponible: impossible d’apprendre tant que son état reste <code>unavailable</code>.</span>';
+          }
+        } else {
+          if (learnBtn) learnBtn.disabled = false;
+        }
       };
+    }
+
+    var learnEntityId = $("learnEntityId");
+    if (learnEntityId) {
+      learnEntityId.addEventListener("input", function () {
+        var e = remoteEntitiesById[learnEntityId.value.trim()];
+        var lr = $("learnResult");
+        var learnBtn = $("learnBtn");
+        if (e && e.available === false) {
+          if (learnBtn) learnBtn.disabled = true;
+          if (lr) {
+            lr.innerHTML =
+              '<span class="warn">Entité indisponible: impossible d’apprendre tant que son état reste <code>unavailable</code>.</span>';
+          }
+        } else if (learnBtn) {
+          learnBtn.disabled = false;
+        }
+      });
     }
 
     var includeSwing = $("includeSwing");

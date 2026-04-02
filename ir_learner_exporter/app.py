@@ -279,15 +279,19 @@ def remote_entities():
             continue
         attrs = item.get("attributes") if isinstance(item.get("attributes"), dict) else {}
         features = int(attrs.get("supported_features") or 0)
+        state = str(item.get("state") or "")
+        available = state not in ("unavailable", "unknown")
         # remote.RemoteEntityFeature.LEARN_COMMAND == 1
         supports_learn = bool(features & 1)
         entities.append({
             "entity_id": entity_id,
             "name": str(attrs.get("friendly_name") or entity_id),
             "supports_learn": supports_learn,
+            "available": available,
+            "state": state,
         })
 
-    entities.sort(key=lambda e: (not e["supports_learn"], e["name"].lower(), e["entity_id"]))
+    entities.sort(key=lambda e: (not e["available"], not e["supports_learn"], e["name"].lower(), e["entity_id"]))
     return jsonify({"ok": True, "entities": entities})
 
 
@@ -528,6 +532,20 @@ def learn_ir():
         return jsonify({"ok": False, "message": "Renseigne l’entité remote.* ."}), 400
     if not entity_id.startswith("remote."):
         return jsonify({"ok": False, "message": "L’entité doit commencer par remote."}), 400
+
+    # Garde-fou: ne pas lancer learn_command si l'entité est indisponible.
+    state_status, state_result = ha_api_get(f"states/{entity_id}", timeout=10.0)
+    if state_status == 200 and isinstance(state_result, dict):
+        current_state = str(state_result.get("state") or "")
+        if current_state in ("unavailable", "unknown"):
+            return jsonify({
+                "ok": False,
+                "message": (
+                    f"L’entité {entity_id} est '{current_state}'. "
+                    "Apprentissage bloqué tant qu’elle n’est pas disponible."
+                ),
+                "entity_id": entity_id,
+            }), 409
 
     if not SUPERVISOR_TOKEN:
         return jsonify({
