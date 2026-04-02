@@ -209,6 +209,38 @@ def build_combo_name(mode, temperature, fan, swing=None):
     return "_".join(parts)
 
 
+def parse_combo_parts(name: str):
+    """Décode les noms issus de build_combo_name.
+
+    - Sans swing : ``mode_temp_fan`` (ex. ``heat_cool_24_low`` — le mode peut contenir des ``_``).
+    - Avec swing : ``mode_temp_fan_swing``.
+
+    La température est le premier segment entièrement numérique.
+    """
+    parts = name.split("_")
+    temp_idx = next((i for i, p in enumerate(parts) if p.isdigit()), None)
+    if temp_idx is None or temp_idx == 0:
+        return None
+    mode = "_".join(parts[:temp_idx])
+    temp = parts[temp_idx]
+    rest = parts[temp_idx + 1:]
+    if len(rest) == 1:
+        return mode, temp, rest[0], None
+    if len(rest) == 2:
+        return mode, temp, rest[0], rest[1]
+    return None
+
+
+def canonical_fan_swing(slug: str, candidates: list) -> str:
+    """Rétablit la casse / libellé des listes fanModes / swingModes (ex. 1133.json)."""
+    if candidates:
+        s = slugify(slug)
+        for c in candidates:
+            if slugify(str(c)) == s:
+                return str(c).strip()
+    return slug
+
+
 @app.get("/")
 def index():
     resp = send_from_directory(app.static_folder, "ir-learner.html")
@@ -468,9 +500,10 @@ def export_json():
             "precision": int(payload.get("precision", 1)),
             "operationModes": operation_modes,
             "fanModes": fan_modes,
-            "swingModes": swing_modes,
             "commands": {},
         }
+        if swing_modes:
+            export["swingModes"] = swing_modes
 
         commands = export["commands"]
 
@@ -482,22 +515,28 @@ def export_json():
             if name == "off":
                 commands["off"] = code
                 continue
-            parts = name.split("_")
-            if len(parts) == 4:
-                mode, temp, fan, swing = parts
-                mode = mode.lower()
-                fan = fan.title()
-                swing = swing.title()
-                if mode not in commands:
-                    commands[mode] = {}
-                if fan not in commands[mode]:
-                    commands[mode][fan] = {}
-                if swing not in commands[mode][fan]:
-                    commands[mode][fan][swing] = {}
-                commands[mode][fan][swing][temp] = code
-            else:
-                # fallback for other names
-                commands[name] = code
+            parsed = parse_combo_parts(name)
+            if parsed:
+                mode, temp, fan_raw, swing_raw = parsed
+                mode_key = mode.lower()
+                fan_key = canonical_fan_swing(fan_raw, fan_modes)
+                if swing_raw is not None:
+                    swing_key = canonical_fan_swing(swing_raw, swing_modes)
+                    if mode_key not in commands:
+                        commands[mode_key] = {}
+                    if fan_key not in commands[mode_key]:
+                        commands[mode_key][fan_key] = {}
+                    if swing_key not in commands[mode_key][fan_key]:
+                        commands[mode_key][fan_key][swing_key] = {}
+                    commands[mode_key][fan_key][swing_key][temp] = code
+                else:
+                    if mode_key not in commands:
+                        commands[mode_key] = {}
+                    if fan_key not in commands[mode_key]:
+                        commands[mode_key][fan_key] = {}
+                    commands[mode_key][fan_key][temp] = code
+                continue
+            commands[name] = code
 
         filename = str(payload.get("filename") or EXPORT_FILENAME).strip() or EXPORT_FILENAME
         if not filename.lower().endswith(".json"):
