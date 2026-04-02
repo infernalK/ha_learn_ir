@@ -77,6 +77,17 @@
     var label = ($("cmdName") && $("cmdName").value.trim()) || "learned_command";
 
     if (!entityId) {
+      var select = $("learnEntitySelect");
+      if (
+        select &&
+        (select.options.length === 0 ||
+          /aucune entité remote\.\*/i.test(select.options[0] ? select.options[0].text : ""))
+      ) {
+        if (lr)
+          lr.innerHTML =
+            '<span class="warn">Aucune entité <code>remote.*</code> disponible actuellement dans Home Assistant.</span>';
+        return;
+      }
       if (lr)
         lr.innerHTML =
           '<span class="warn">Erreur: saisis l’entité <code>remote.*</code> (ex. <code>remote.salon</code>).</span>';
@@ -132,6 +143,7 @@
 
   async function refreshRemoteEntities() {
     var select = $("learnEntitySelect");
+    var lr = $("learnResult");
     if (!select) return;
 
     select.innerHTML = '<option value="">Chargement…</option>';
@@ -140,6 +152,19 @@
       var j = await resp.json();
       if (!resp.ok || !j || !j.ok || !Array.isArray(j.entities)) {
         select.innerHTML = '<option value="">(erreur de chargement)</option>';
+        if (lr) {
+          lr.innerHTML =
+            '<span class="warn">Erreur: impossible de récupérer les entités <code>remote.*</code> depuis Home Assistant.</span>';
+        }
+        return;
+      }
+
+      if (j.entities.length === 0) {
+        select.innerHTML = '<option value="">(aucune entité remote.* détectée)</option>';
+        if (lr) {
+          lr.innerHTML =
+            '<span class="warn">Aucune entité <code>remote.*</code> disponible. Vérifie ton intégration IR dans Home Assistant.</span>';
+        }
         return;
       }
 
@@ -151,9 +176,16 @@
         opt.textContent = `${e.name} (${e.entity_id})${suffix}`;
         select.appendChild(opt);
       });
+      if (lr && !($("learnEntityId") && $("learnEntityId").value.trim())) {
+        lr.innerHTML = "";
+      }
     } catch (e) {
       console.error("refreshRemoteEntities error:", e);
       select.innerHTML = '<option value="">(erreur de chargement)</option>';
+      if (lr) {
+        lr.innerHTML =
+          '<span class="warn">Erreur: Home Assistant indisponible, impossible de lister les entités <code>remote.*</code>.</span>';
+      }
     }
   }
 
