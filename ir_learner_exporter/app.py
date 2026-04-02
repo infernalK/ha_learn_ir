@@ -46,7 +46,12 @@ def build_combo_name(mode, temperature, fan, swing=None):
 
 @app.get("/")
 def index():
-    return send_from_directory(app.static_folder, "ir-learner.html")
+    resp = send_from_directory(app.static_folder, "ir-learner.html")
+    # Empêche le navigateur iOS de garder une ancienne version du HTML.
+    resp.headers["Cache-Control"] = "no-store, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
 
 
 @app.get("/api/template")

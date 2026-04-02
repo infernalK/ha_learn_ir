@@ -320,6 +320,9 @@ function computeApiBase() {
 const API_BASE = computeApiBase();
 
 const $ = id => document.getElementById(id);
+if ($('filesStatus')) {
+  $('filesStatus').innerHTML = `JS démarrage. API base: <code>${esc(API_BASE)}</code>`;
+}
 const lines = id => $(id).value.split(/\n/).map(v => v.trim()).filter(Boolean);
 
 function esc(v) {
