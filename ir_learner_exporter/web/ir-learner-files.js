@@ -652,6 +652,7 @@
         var e = remoteEntitiesById[learnEntitySelect.value];
         var lr = $("learnResult");
         var learnBtn = $("learnBtn");
+        if (lr) lr.innerHTML = "";
         if (e && e.available === false) {
           if (learnBtn) learnBtn.disabled = true;
           if (lr) {
@@ -670,6 +671,7 @@
         var e = remoteEntitiesById[learnEntityId.value.trim()];
         var lr = $("learnResult");
         var learnBtn = $("learnBtn");
+        if (lr) lr.innerHTML = "";
         if (e && e.available === false) {
           if (learnBtn) learnBtn.disabled = true;
           if (lr) {
