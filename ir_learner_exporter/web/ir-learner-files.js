@@ -1,6 +1,7 @@
 // Script externe pour peupler le combobox des fichiers.
 // (Le script inline de la page peut être bloqué par une CSP dans Home Assistant.)
 (function () {
+  // ----- Helpers DOM / API -----
   function computeApiBase() {
     // Ingress sert souvent: /hassio_ingress/<token>/ir-learner.html
     // => on veut:         /hassio_ingress/<token>/api
@@ -15,6 +16,15 @@
     return document.getElementById(id);
   }
 
+  function esc(v) {
+    return String(v ?? "").replace(/[&<>"]/g, s => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+    }[s]));
+  }
+
   function escText(s) {
     return String(s ?? "");
   }
@@ -22,6 +32,163 @@
   function setFilesStatus(html) {
     var el = $("filesStatus");
     if (el) el.innerHTML = html;
+  }
+
+  // ----- Etat UI (commandes) -----
+  var commands = [];
+
+  function linesFromEl(id) {
+    var el = $(id);
+    if (!el) return [];
+    return el.value
+      .split(/\n/)
+      .map(v => v.trim())
+      .filter(Boolean);
+  }
+
+  function renderCommandsTable() {
+    var body = $("commandsBody");
+    if (!body) return;
+
+    body.innerHTML = commands
+      .map((c, i) => `
+        <tr>
+          <td>${esc(c.name)}</td>
+          <td><code>${esc(c.code || "")}</code></td>
+          <td>
+            <button class="btn secondary" style="width:auto" onclick="editCmd(${i})">Éditer</button>
+          </td>
+        </tr>
+      `)
+      .join("");
+
+    var filled = commands.filter(c => (c.code || "").trim()).length;
+    if ($("status")) {
+      $("status").innerHTML = `${commands.length} commande(s), ${filled} remplie(s), ${commands.length - filled} vide(s).`;
+    }
+  }
+
+  function visualizeMatrix(list) {
+    var viz = $("matrixVisualization");
+    var grid = $("matGrid");
+    if (!viz || !grid) return;
+
+    if (!list || !list.length) {
+      viz.style.display = "none";
+      grid.innerHTML = "";
+      return;
+    }
+
+    viz.style.display = "block";
+    grid.innerHTML = list
+      .slice(0, 300)
+      .map(item => `
+        <div class="mat-item">
+          <strong>${esc(item.name)}</strong><br>
+          ${item.code ? `<code>${esc(item.code)}</code>` : '<span class="warn">vide</span>'}
+        </div>
+      `)
+      .join("");
+
+    if (list.length > 300) {
+      var more = document.createElement("div");
+      more.style.gridColumn = "1 / -1";
+      more.style.color = "#cbd5e1";
+      more.style.fontSize = "12px";
+      more.textContent = `${list.length - 300} autres commandes non affichées`;
+      grid.appendChild(more);
+    }
+  }
+
+  window.editCmd = function (i) {
+    var cmdName = $("cmdName");
+    var cmdCode = $("cmdCode");
+    if (!cmdName || !cmdCode) return;
+    cmdName.value = commands[i].name;
+    cmdCode.value = commands[i].code || "";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  function updateSwingSectionVisibility() {
+    var swingSection = $("swingSection");
+    var includeSwing = $("includeSwing");
+    if (!swingSection || !includeSwing) return;
+    swingSection.style.display = includeSwing.checked ? "block" : "none";
+  }
+
+  function applyImportedData(j) {
+    if (!j || !j.commands) {
+      if ($("matrixStatus")) $("matrixStatus").innerHTML = '<span class="warn">JSON importé invalide ou sans commandes.</span>';
+      return;
+    }
+
+    if ($("manufacturer")) $("manufacturer").value = j.manufacturer || "";
+    if ($("supportedModels")) $("supportedModels").value = (j.supportedModels || []).join("\n");
+    if ($("minTemperature")) $("minTemperature").value = j.minTemperature || 16;
+    if ($("maxTemperature")) $("maxTemperature").value = j.maxTemperature || 31;
+    if ($("precision")) $("precision").value = j.precision || 1;
+    if ($("operationModes")) $("operationModes").value = (j.operationModes || []).join("\n");
+    if ($("fanModes")) $("fanModes").value = (j.fanModes || []).join("\n");
+    if ($("swingModes")) $("swingModes").value = (j.swingModes || []).join("\n");
+
+    if ($("includeSwing")) {
+      $("includeSwing").checked = Array.isArray(j.swingModes) && j.swingModes.length > 0;
+    }
+    updateSwingSectionVisibility();
+
+    commands.length = 0;
+    (j.commands || []).forEach(c => commands.push(c));
+
+    if ($("matrixStatus")) {
+      $("matrixStatus").innerHTML = `<span class="ok">Import OK : ${commands.length} commandes.</span>`;
+    }
+    renderCommandsTable();
+    visualizeMatrix(commands);
+  }
+
+  async function loadGeneratedFile() {
+    var select = $("generatedFileSelect");
+    if (!select) return;
+
+    var filename = select.value;
+    if (!filename) {
+      if ($("matrixStatus")) $("matrixStatus").innerHTML = '<span class="warn">Veuillez sélectionner un fichier JSON généré.</span>';
+      return;
+    }
+
+    if ($("matrixStatus")) $("matrixStatus").innerHTML = `<span class="small">Chargement de ${esc(filename)}…</span>`;
+
+    try {
+      var r = await fetch(
+        `${API_BASE}/load?filename=${encodeURIComponent(filename)}`,
+        { cache: "no-store" }
+      );
+      var j = await r.json();
+
+      if (!j.ok) {
+        if ($("matrixStatus")) $("matrixStatus").innerHTML = `<span class="warn">Erreur chargement: ${esc(j.error || "inconnu")}</span>`;
+        return;
+      }
+
+      if (!j.data) {
+        if ($("matrixStatus")) $("matrixStatus").innerHTML = '<span class="warn">Données manquantes dans la réponse du serveur.</span>';
+        return;
+      }
+
+      var r2 = await fetch(`${API_BASE}/import`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ json: JSON.stringify(j.data) }),
+        cache: "no-store",
+      });
+      var j2 = await r2.json();
+      applyImportedData(j2);
+
+      if ($("matrixStatus")) $("matrixStatus").innerHTML = `<span class="ok">Fichier ${esc(filename)} chargé.</span>`;
+    } catch (e) {
+      console.error("loadGeneratedFile error:", e);
+      if ($("matrixStatus")) $("matrixStatus").innerHTML = `<span class="warn">Erreur: ${escText(e && e.message ? e.message : e)}</span>`;
+    }
   }
 
   async function refreshGeneratedFiles() {
@@ -76,6 +243,18 @@
       reloadBtn.onclick = function () {
         refreshGeneratedFiles();
       };
+    }
+
+    var loadBtn = $("loadGeneratedBtn");
+    if (loadBtn) {
+      loadBtn.onclick = function () {
+        loadGeneratedFile();
+      };
+    }
+
+    var includeSwing = $("includeSwing");
+    if (includeSwing) {
+      includeSwing.addEventListener("change", updateSwingSectionVisibility);
     }
   }
 
