@@ -67,8 +67,12 @@
       grid-template-columns: 1fr 1fr 1fr;
       gap: 12px;
     }
+    .row-2 {
+      grid-template-columns: 1fr 1fr;
+    }
     @media (max-width: 760px) {
       .row { grid-template-columns: 1fr; }
+      .row-2 { grid-template-columns: 1fr; }
     }
     .toolbar {
       display: flex;
@@ -153,6 +157,80 @@
     }
     .ok { color: #86efac; }
     .warn { color: #fca5a5; }
+
+    /* En-têtes de carte (aligné avec Fichiers générés / Import, etc.) */
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding-bottom: 12px;
+      margin-bottom: 4px;
+      border-bottom: 1px solid var(--line);
+    }
+    .card-head h2 {
+      margin: 0;
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .card-head .small {
+      margin: 0;
+    }
+    .card-body {
+      display: grid;
+      gap: 0;
+      margin-top: 4px;
+    }
+    .field-group {
+      display: grid;
+      gap: 12px;
+      padding-top: 14px;
+      margin-top: 14px;
+      border-top: 1px solid rgba(51, 65, 85, 0.6);
+    }
+    .field-group:first-child {
+      padding-top: 0;
+      margin-top: 0;
+      border-top: none;
+    }
+    .field-group-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin: 0 0 -4px 0;
+    }
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 10px 12px;
+      background: #0f172a;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+    .checkbox-row input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+      accent-color: var(--accent);
+    }
+    .checkbox-row label {
+      margin: 0;
+      cursor: pointer;
+    }
+    select {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: #0f172a;
+      color: var(--text);
+      padding: 12px;
+      font: inherit;
+    }
   </style>
 </head>
 <body>
@@ -220,75 +298,91 @@
   </section>
 
   <div class="grid">
-    <section class="card stack">
-      <h2>Profil clim</h2>
-
-      <div>
-        <label>Nom du fichier JSON</label>
-        <input id="filename" value="learned_codes.json">
+    <section class="card">
+      <div class="card-head">
+        <h2>Profil clim</h2>
+        <div class="small">Génération de la matrice &amp; export</div>
       </div>
 
-      <div>
-        <label>Fabricant</label>
-        <input id="manufacturer" placeholder="Mitsubishi Electric Starmex">
-      </div>
-
-      <div>
-        <label>Modèles supportés, un par ligne</label>
-        <textarea id="supportedModels"></textarea>
-      </div>
-
-      <div class="row">
-        <div>
-          <label>Température min</label>
-          <input id="minTemperature" type="number" value="16">
+      <div class="card-body stack">
+        <div class="field-group">
+          <p class="field-group-title">Métadonnées</p>
+          <div>
+            <label>Nom du fichier JSON</label>
+            <input id="filename" value="learned_codes.json">
+          </div>
+          <div>
+            <label>Fabricant</label>
+            <input id="manufacturer" placeholder="Mitsubishi Electric Starmex">
+          </div>
+          <div>
+            <label>Modèles supportés, un par ligne</label>
+            <textarea id="supportedModels"></textarea>
+          </div>
         </div>
-        <div>
-          <label>Température max</label>
-          <input id="maxTemperature" type="number" value="31">
-        </div>
-        <div>
-          <label>Précision</label>
-          <input id="precision" type="number" value="1">
-        </div>
-      </div>
 
-      <div class="row">
-        <div>
-          <label>Modes</label>
-          <textarea id="operationModes">cool
+        <div class="field-group">
+          <p class="field-group-title">Plage de températures</p>
+          <div class="row">
+            <div>
+              <label>Température min</label>
+              <input id="minTemperature" type="number" value="16">
+            </div>
+            <div>
+              <label>Température max</label>
+              <input id="maxTemperature" type="number" value="31">
+            </div>
+            <div>
+              <label>Précision</label>
+              <input id="precision" type="number" value="1">
+            </div>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <p class="field-group-title">Modes &amp; ventilation</p>
+          <div class="row row-2">
+            <div>
+              <label>Modes</label>
+              <textarea id="operationModes">cool
 dry
 fanonly</textarea>
-        </div>
-        <div>
-          <label>Ventilation</label>
-          <textarea id="fanModes">Auto
+            </div>
+            <div>
+              <label>Ventilation</label>
+              <textarea id="fanModes">Auto
 Low
 Mid
 High</textarea>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div style="display:flex; align-items:center; gap:8px; margin-top:8px;">
-        <input type="checkbox" id="includeSwing" checked>
-        <label for="includeSwing" style="margin:0;">Inclure la dimension Swing dans la matrice</label>
-      </div>
-
-      <div id="swingSection" style="margin-top:8px;">
-        <label>Swing</label>
-        <textarea id="swingModes">Auto
+        <div class="field-group">
+          <p class="field-group-title">Swing</p>
+          <div class="checkbox-row">
+            <input type="checkbox" id="includeSwing" checked>
+            <label for="includeSwing">Inclure la dimension Swing dans la matrice</label>
+          </div>
+          <div id="swingSection">
+            <label>Valeurs Swing, une par ligne</label>
+            <textarea id="swingModes">Auto
 Top
 Mid
 Bottom
 Swing</textarea>
-      </div>
+          </div>
+        </div>
 
-      <div class="toolbar">
-        <button class="btn" id="generateMatrixBtn">Générer la matrice</button>
-        <button class="btn secondary" id="exampleBtn">Charger un exemple</button>
+        <div class="field-group">
+          <p class="field-group-title">Actions</p>
+          <div class="toolbar">
+            <button class="btn" id="generateMatrixBtn">Générer la matrice</button>
+            <button class="btn secondary" id="exampleBtn">Charger un exemple</button>
+          </div>
+          <div class="small" id="matrixStatus"></div>
+        </div>
       </div>
-
-      <div class="small" id="matrixStatus"></div>
     </section>
   </div>
 
