@@ -169,25 +169,28 @@
         return;
       }
 
-      if (j.entities.length === 0) {
+      var learnableEntities = j.entities.filter(function (e) {
+        return !!e.supports_learn;
+      });
+
+      if (learnableEntities.length === 0) {
         remoteEntitiesById = {};
-        select.innerHTML = '<option value="">(aucune entité remote.* détectée)</option>';
+        select.innerHTML = '<option value="">(aucune entité remote.* compatible learn_command)</option>';
         if (lr) {
           lr.innerHTML =
-            '<span class="warn">Aucune entité <code>remote.*</code> disponible. Vérifie ton intégration IR dans Home Assistant.</span>';
+            '<span class="warn">Aucune entité <code>remote.*</code> compatible <code>learn_command</code>. Vérifie ton intégration IR dans Home Assistant.</span>';
         }
         return;
       }
 
       select.innerHTML = '<option value="">-- Choisir une entité remote.* --</option>';
       remoteEntitiesById = {};
-      j.entities.forEach(function (e) {
+      learnableEntities.forEach(function (e) {
         var opt = document.createElement("option");
         opt.value = e.entity_id;
         remoteEntitiesById[e.entity_id] = e;
         var suffix = "";
         if (!e.available) suffix += " (unavailable)";
-        if (!e.supports_learn) suffix += " (sans LEARN_COMMAND)";
         opt.textContent = `${e.name} (${e.entity_id})${suffix}`;
         select.appendChild(opt);
       });
