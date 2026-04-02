@@ -357,23 +357,23 @@ def generate_matrix():
     max_t = int(payload.get("maxTemperature", 31))
     precision = max(1, int(payload.get("precision", 1)))
 
+    if max_t < min_t:
+        return jsonify({
+            "ok": False,
+            "error": "La température max ne peut pas être inférieure à la température min."
+        }), 400
+
     modes = normalize_lines(payload.get("operationModes"))
     fan_modes = normalize_lines(payload.get("fanModes"))
     swing_modes = normalize_lines(payload.get("swingModes"))
 
     include_off = bool(payload.get("includeOff", True))
-    include_ifeel = bool(payload.get("includeIFeelAutoAuto", True))
 
     combos = []
 
     if include_off:
         combos.append({"name": "off", "code": ""})
 
-    if include_ifeel:
-        if swing_modes:
-            combos.append({"name": "ifeel_auto_auto", "code": ""})
-        else:
-            combos.append({"name": "ifeel_auto", "code": ""})
 
     temps = list(range(min_t, max_t + 1, precision))
 

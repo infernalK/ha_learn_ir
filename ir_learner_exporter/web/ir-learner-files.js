@@ -227,16 +227,23 @@
   async function generateMatrix() {
     try {
       var includeSwing = $("includeSwing") ? $("includeSwing").checked : true;
+      var operationModes = linesFromEl("operationModes");
       var payload = {
         minTemperature: numberFromEl("minTemperature", 16),
         maxTemperature: numberFromEl("maxTemperature", 31),
         precision: numberFromEl("precision", 1) || 1,
-        operationModes: linesFromEl("operationModes"),
+        operationModes: operationModes,
         fanModes: linesFromEl("fanModes"),
         swingModes: includeSwing ? linesFromEl("swingModes") : [],
         includeOff: true,
-        includeIFeelAutoAuto: true,
       };
+
+      if (payload.maxTemperature < payload.minTemperature) {
+        setMatrixStatus(
+          '<span class="warn">Erreur: la température max ne peut pas être inférieure à la température min.</span>'
+        );
+        return;
+      }
 
       setMatrixStatus("Génération...");
 
@@ -532,6 +539,7 @@
 
   async function exportJson() {
     try {
+      var includeSwing = $("includeSwing") ? $("includeSwing").checked : true;
       var payload = {
         filename: $("filename") ? $("filename").value.trim() : "learned_codes.json",
         manufacturer: $("manufacturer") ? $("manufacturer").value.trim() : "",
@@ -541,7 +549,7 @@
         precision: numberFromEl("precision", 1) || 1,
         operationModes: linesFromEl("operationModes"),
         fanModes: linesFromEl("fanModes"),
-        swingModes: linesFromEl("swingModes"),
+        swingModes: includeSwing ? linesFromEl("swingModes") : [],
         commands: commands,
       };
 

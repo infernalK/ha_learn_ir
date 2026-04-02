@@ -15,7 +15,6 @@ Cet add-on affiche une interface web dans la barre latérale Home Assistant via 
 Le générateur fabrique automatiquement les noms de commandes selon la formule :
 
 - `off`
-- `ifeel_auto_auto`
 - `mode_temperature_fan_swing`
 
 Exemples :
@@ -26,7 +25,7 @@ Exemples :
 
 Le nombre de combinaisons est :
 
-`modes × températures × ventilations × swings` (+ commandes spéciales éventuelles).
+`modes × températures × ventilations × swings`.
 
 ## Import / export
 
