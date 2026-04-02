@@ -61,6 +61,67 @@
       .filter(Boolean);
   }
 
+  function numberFromEl(id, fallback) {
+    var el = $(id);
+    if (!el) return fallback;
+    var n = Number(el.value);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  async function generateMatrix() {
+    try {
+      var includeSwing = $("includeSwing") ? $("includeSwing").checked : true;
+      var payload = {
+        minTemperature: numberFromEl("minTemperature", 16),
+        maxTemperature: numberFromEl("maxTemperature", 31),
+        precision: numberFromEl("precision", 1) || 1,
+        operationModes: linesFromEl("operationModes"),
+        fanModes: linesFromEl("fanModes"),
+        swingModes: includeSwing ? linesFromEl("swingModes") : [],
+        includeOff: true,
+        includeIFeelAutoAuto: true,
+      };
+
+      setMatrixStatus("Génération...");
+
+      var r = await fetch(`${API_BASE}/generate_matrix`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        cache: "no-store",
+      });
+
+      if (!r.ok) {
+        var text = await r.text();
+        setMatrixStatus(`<span class="warn">Erreur HTTP ${escText(r.status)}: ${escText(text)}</span>`);
+        return;
+      }
+
+      var j = await r.json();
+      if (!j || !j.ok || !Array.isArray(j.commands)) {
+        setMatrixStatus('<span class="warn">Réponse invalide (POST /api/generate_matrix).</span>');
+        return;
+      }
+
+      // Préserve les codes déjà saisis si le nom de commande existe.
+      var previous = new Map(commands.map(c => [c.name, c.code]));
+      commands.length = 0;
+      j.commands.forEach(function (c) {
+        commands.push({
+          name: c.name,
+          code: previous.get(c.name) || "",
+        });
+      });
+
+      setMatrixStatus(`<span class="ok">${escText(j.count || commands.length)} combinaisons générées.</span>`);
+      renderCommandsTable();
+      visualizeMatrix(commands);
+    } catch (e) {
+      console.error("generateMatrix error:", e);
+      setMatrixStatus(`<span class="warn">Erreur: ${escText(e && e.message ? e.message : e)}</span>`);
+    }
+  }
+
   function renderCommandsTable() {
     var body = $("commandsBody");
     if (!body) return;
@@ -276,6 +337,53 @@
     }
   }
 
+  async function exportJson() {
+    try {
+      var payload = {
+        filename: $("filename") ? $("filename").value.trim() : "learned_codes.json",
+        manufacturer: $("manufacturer") ? $("manufacturer").value.trim() : "",
+        supportedModels: linesFromEl("supportedModels"),
+        minTemperature: numberFromEl("minTemperature", 16),
+        maxTemperature: numberFromEl("maxTemperature", 31),
+        precision: numberFromEl("precision", 1) || 1,
+        operationModes: linesFromEl("operationModes"),
+        fanModes: linesFromEl("fanModes"),
+        swingModes: linesFromEl("swingModes"),
+        commands: commands,
+      };
+
+      if ($("status")) $("status").innerHTML = "Export...";
+
+      var r = await fetch(`${API_BASE}/export`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        cache: "no-store",
+      });
+
+      var j = await r.json().catch(() => null);
+      if (!r.ok || !j) {
+        var txt = j && j.error ? j.error : `HTTP ${r.status}`;
+        if ($("status")) $("status").innerHTML = `<span class="warn">Erreur export: ${esc(txt)}</span>`;
+        return;
+      }
+      if (!j.ok) {
+        if ($("status")) $("status").innerHTML = `<span class="warn">Erreur export: ${esc(j.error || "inconnu")}</span>`;
+        return;
+      }
+
+      if ($("status")) {
+        $("status").innerHTML =
+          `<span class="ok">JSON généré : ${esc(j.filename)} — ${escText(j.command_count)} commande(s) — chemin : ${esc(j.public_path)}</span>`;
+      }
+      // Refresh dropdown
+      await refreshGeneratedFiles();
+    } catch (e) {
+      console.error("exportJson error:", e);
+      if ($("status")) $("status").innerHTML = `<span class="warn">Erreur export: ${escText(e && e.message ? e.message : e)}</span>`;
+    }
+  }
+
   async function refreshGeneratedFiles() {
     var select = $("generatedFileSelect");
     if (!select) return;
@@ -340,6 +448,20 @@
     var includeSwing = $("includeSwing");
     if (includeSwing) {
       includeSwing.addEventListener("change", updateSwingSectionVisibility);
+    }
+
+    var generateMatrixBtn = $("generateMatrixBtn");
+    if (generateMatrixBtn) {
+      generateMatrixBtn.onclick = function () {
+        generateMatrix();
+      };
+    }
+
+    var exportBtn = $("exportBtn");
+    if (exportBtn) {
+      exportBtn.onclick = function () {
+        exportJson();
+      };
     }
 
     var importBtn = $("importBtn");
