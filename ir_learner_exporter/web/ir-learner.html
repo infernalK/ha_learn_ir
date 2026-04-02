@@ -329,6 +329,19 @@ function esc(v) {
   }[s]));
 }
 
+window.addEventListener('error', (e) => {
+  const msg = e && e.message ? e.message : 'Erreur JavaScript inconnue';
+  const status = $('matrixStatus');
+  if (status) status.innerHTML = `<span class="warn">Erreur JS: ${esc(msg)}</span>`;
+});
+
+window.addEventListener('unhandledrejection', (e) => {
+  const reason = e && e.reason ? e.reason : null;
+  const msg = reason && reason.message ? reason.message : String(reason || 'Rejet non géré');
+  const status = $('matrixStatus');
+  if (status) status.innerHTML = `<span class="warn">Rejet non géré: ${esc(msg)}</span>`;
+});
+
 function upsertCommand(name, code) {
   const i = commands.findIndex(c => c.name === name);
   if (i >= 0) commands[i].code = code;
@@ -514,6 +527,13 @@ $('importBtn').onclick = async () => {
 };
 
 async function refreshGeneratedFiles() {
+  const select = $('generatedFileSelect');
+  if (select) {
+    select.innerHTML = '<option value="">Chargement…</option>';
+  }
+  if ($('matrixStatus')) {
+    $('matrixStatus').innerHTML = `<span class="small">Chargement des fichiers depuis <code>${esc(API_BASE + '/files')}</code>…</span>`;
+  }
   try {
     const r = await fetch(`${API_BASE}/files`);
     const j = await r.json();
@@ -623,6 +643,9 @@ $('exportBtn').onclick = async () => {
 };
 
 render();
+if ($('matrixStatus')) {
+  $('matrixStatus').innerHTML = `<span class="small">API base détectée : <code>${esc(API_BASE)}</code></span>`;
+}
 refreshGeneratedFiles();
 </script>
 </body>
