@@ -243,6 +243,7 @@ Swing</textarea>
           <button class="btn secondary" id="reloadFilesBtn" style="width:auto;">Actualiser</button>
           <button class="btn" id="loadGeneratedBtn" style="width:auto;">Charger fichier</button>
         </div>
+        <div id="filesStatus" class="small" style="margin-top:8px; color: var(--muted);"></div>
       </div>
 
       <div>
@@ -311,8 +312,10 @@ const commands = [];
 // On calcule donc la base API à partir du chemin courant pour que `fetch()` pointe toujours vers `/api/*`.
 function computeApiBase() {
   const p = window.location.pathname || '/';
-  const looksLikeFile = /\.[a-zA-Z0-9]+$/.test(p);
-  const baseDir = p.endsWith('/') ? p : (looksLikeFile ? p.substring(0, p.lastIndexOf('/') + 1) : p + '/');
+  // On remonte toujours d'un niveau si l'URL ne finit pas par `/`.
+  // Exemple: `/hassio_ingress/<token>/ir-learner.html` -> `/hassio_ingress/<token>/api`
+  // Exemple: `/hassio_ingress/<token>/ir-learner` -> `/hassio_ingress/<token>/api`
+  const baseDir = p.endsWith('/') ? p : p.substring(0, p.lastIndexOf('/') + 1);
   return `${baseDir}api`;
 }
 const API_BASE = computeApiBase();
@@ -531,8 +534,8 @@ async function refreshGeneratedFiles() {
   if (select) {
     select.innerHTML = '<option value="">Chargement…</option>';
   }
-  if ($('matrixStatus')) {
-    $('matrixStatus').innerHTML = `<span class="small">Chargement des fichiers depuis <code>${esc(API_BASE + '/files')}</code>…</span>`;
+  if ($('filesStatus')) {
+    $('filesStatus').innerHTML = `Chargement des fichiers depuis <code>${esc(API_BASE + '/files')}</code>…`;
   }
   try {
     const r = await fetch(`${API_BASE}/files`);
@@ -546,13 +549,21 @@ async function refreshGeneratedFiles() {
     }
 
     select.innerHTML = '<option value="">-- Choisir un fichier --</option>' + j.files.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join('');
+    if ($('filesStatus')) {
+      const count = Array.isArray(j.files) ? j.files.length : 0;
+      $('filesStatus').innerHTML = `${count} fichier(s) trouvés dans <code>${esc(API_BASE + '/files')}</code>.`;
+    }
   } catch (error) {
     console.error('Erreur refreshGeneratedFiles:', error);
     const select = $('generatedFileSelect');
     if (select) {
       select.innerHTML = '<option value="">(erreur de chargement)</option>';
     }
-    $('matrixStatus').innerHTML = `<span class="warn">Impossible de charger la liste des fichiers: ${esc(error.message || error)}</span>`;
+    if ($('filesStatus')) {
+      $('filesStatus').innerHTML = `<span class="warn">Impossible de charger la liste des fichiers: ${esc(error.message || error)}</span>`;
+    } else if ($('matrixStatus')) {
+      $('matrixStatus').innerHTML = `<span class="warn">Impossible de charger la liste des fichiers: ${esc(error.message || error)}</span>`;
+    }
   }
 }
 
