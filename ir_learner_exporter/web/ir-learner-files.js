@@ -49,6 +49,14 @@
     if (el) el.innerHTML = html;
   }
 
+  function clearAllMessages() {
+    // On nettoie les anciens messages pour éviter d'avoir des statuts contradictoires.
+    setImportStatus("");
+    setPasteStatus("");
+    setFilesStatus("");
+    setMatrixStatus("");
+  }
+
   // ----- Etat UI (commandes) -----
   var commands = [];
 
@@ -253,6 +261,8 @@
     var fileInput = $("importFile");
     if (!fileInput) return;
 
+    clearAllMessages();
+
     var raw = "";
     if (fileInput.files && fileInput.files.length > 0) {
       raw = await fileInput.files[0].text();
@@ -288,6 +298,8 @@
     var importJson = $("importJson");
     if (!importJson) return;
 
+    clearAllMessages();
+
     var raw = (importJson.value || "").trim();
     if (!raw) {
       var warn = '<span class="warn">Colle un JSON avant de cliquer.</span>';
@@ -320,6 +332,8 @@
   async function loadGeneratedFile() {
     var select = $("generatedFileSelect");
     if (!select) return;
+
+    clearAllMessages();
 
     var filename = select.value;
     if (!filename) {

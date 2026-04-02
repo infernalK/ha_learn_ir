@@ -290,31 +290,6 @@ Swing</textarea>
 
       <div class="small" id="matrixStatus"></div>
     </section>
-
-    <section class="card stack">
-      <h2>Import / apprentissage</h2>
-      <div class="toolbar">
-        <button class="btn danger" id="clearBtn">Vider les commandes</button>
-      </div>
-
-      <div>
-        <label>Nom de commande</label>
-        <input id="cmdName" placeholder="cool_24_auto_swing">
-      </div>
-
-      <div>
-        <label>Code IR Base64</label>
-        <textarea id="cmdCode"></textarea>
-      </div>
-
-      <div class="toolbar">
-        <button class="btn secondary" id="learnBtn">Apprendre</button>
-        <button class="btn" id="addBtn">Ajouter / mettre à jour</button>
-        <button class="btn secondary" id="findNextEmptyBtn">Trouver la prochaine vide</button>
-      </div>
-
-      <div id="learnResult" class="small"></div>
-    </section>
   </div>
 
   <section class="card stack">
@@ -339,6 +314,31 @@ Swing</textarea>
       <h2>Visualisation matrice</h2>
       <div class="mat-grid" id="matGrid"></div>
     </section>
+  </section>
+
+  <section class="card stack">
+    <h2>Import / apprentissage</h2>
+    <div class="toolbar">
+      <button class="btn danger" id="clearBtn">Vider les commandes</button>
+    </div>
+
+    <div>
+      <label>Nom de commande</label>
+      <input id="cmdName" placeholder="cool_24_auto_swing">
+    </div>
+
+    <div>
+      <label>Code IR Base64</label>
+      <textarea id="cmdCode"></textarea>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn secondary" id="learnBtn">Apprendre</button>
+      <button class="btn" id="addBtn">Ajouter / mettre à jour</button>
+      <button class="btn secondary" id="findNextEmptyBtn">Trouver la prochaine vide</button>
+    </div>
+
+    <div id="learnResult" class="small"></div>
   </section>
 </div>
 
