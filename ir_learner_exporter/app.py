@@ -2,6 +2,8 @@ from flask import Flask, jsonify, request, send_from_directory
 import os
 import json
 import re
+import urllib.error
+import urllib.request
 from pathlib import Path
 from datetime import datetime, timezone
 from itertools import product
@@ -19,8 +21,124 @@ EXPORT_FILENAME = os.environ.get("EXPORT_FILENAME", "learned_codes.json")
 DEFAULT_MANUFACTURER = os.environ.get("DEFAULT_MANUFACTURER", "")
 DEFAULT_SUPPORTED_CONTROLLER = os.environ.get("DEFAULT_SUPPORTED_CONTROLLER", "Broadlink")
 
+HA_API_BASE = os.environ.get("HA_SUPERVISOR_API", "http://supervisor/core/api").rstrip("/")
+SUPERVISOR_TOKEN = (os.environ.get("SUPERVISOR_TOKEN") or "").strip()
+HOMEASSISTANT_DIR = Path(os.environ.get("HOMEASSISTANT_CONFIG", "/homeassistant"))
+
 PUBLIC_DIR.mkdir(parents=True, exist_ok=True)
 DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _learn_timeout_seconds() -> int:
+    raw = (os.environ.get("LEARN_TIMEOUT_SECONDS") or "").strip()
+    try:
+        v = int(raw)
+    except ValueError:
+        v = 40
+    return max(10, min(v, 120))
+
+
+def ha_api_post(services_path: str, body: dict, *, timeout: float) -> tuple[int, object]:
+    """POST vers l’API Home Assistant (proxy Supervisor). Retourne (status, json|str|list)."""
+    if not SUPERVISOR_TOKEN:
+        return 0, "SUPERVISOR_TOKEN manquant"
+    url = f"{HA_API_BASE}/{services_path.lstrip('/')}"
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(body).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {SUPERVISOR_TOKEN}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            raw = resp.read().decode("utf-8")
+            status = resp.status
+    except urllib.error.HTTPError as e:
+        status = e.code
+        raw = e.read().decode("utf-8", errors="replace")
+    except urllib.error.URLError as e:
+        return 0, str(e.reason or e)
+
+    if not raw.strip():
+        return status, {}
+    try:
+        return status, json.loads(raw)
+    except json.JSONDecodeError:
+        return status, raw
+
+
+def _format_ha_error(result: object, status: int) -> str:
+    if isinstance(result, dict) and result.get("message"):
+        return f"Home Assistant (HTTP {status}) : {result['message']}"
+    if isinstance(result, str) and result.strip():
+        return f"Home Assistant (HTTP {status}) : {result}"
+    return f"Home Assistant a renvoyé une erreur HTTP {status}."
+
+
+def _iter_broadlink_code_files() -> list[Path]:
+    d = HOMEASSISTANT_DIR / ".storage"
+    if not d.is_dir():
+        return []
+    return sorted(
+        (p for p in d.glob("broadlink_remote_*_codes") if p.is_file()),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+
+
+def _snapshot_broadlink_mtimes() -> dict[str, float]:
+    return {str(p.resolve()): p.stat().st_mtime for p in _iter_broadlink_code_files()}
+
+
+def _normalize_ir_code_value(raw) -> str | None:
+    if isinstance(raw, str) and raw.strip():
+        return raw.strip()
+    if isinstance(raw, list) and raw:
+        first = raw[0]
+        if isinstance(first, str) and first.strip():
+            return first.strip()
+    return None
+
+
+def _read_broadlink_code_from_file(path: Path, device: str, command: str) -> str | None:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError, TypeError):
+        return None
+    data = payload.get("data")
+    if not isinstance(data, dict):
+        return None
+    sub = data.get(device)
+    if not isinstance(sub, dict):
+        return None
+    return _normalize_ir_code_value(sub.get(command))
+
+
+def _extract_broadlink_learned_code(
+    device: str,
+    command: str,
+    before: dict[str, float],
+) -> str | None:
+    updated: list[tuple[float, Path]] = []
+    for p in _iter_broadlink_code_files():
+        key = str(p.resolve())
+        prev = before.get(key)
+        mtime = p.stat().st_mtime
+        if prev is None or mtime > prev + 0.05:
+            updated.append((mtime, p))
+    updated.sort(key=lambda x: x[0], reverse=True)
+    for _, p in updated:
+        got = _read_broadlink_code_from_file(p, device, command)
+        if got:
+            return got
+    for p in _iter_broadlink_code_files():
+        got = _read_broadlink_code_from_file(p, device, command)
+        if got:
+            return got
+    return None
 
 
 def slugify(value: str) -> str:
@@ -89,6 +207,9 @@ def paths():
     return jsonify({
         "public_dir": str(PUBLIC_DIR),
         "data_dir": str(DATA_DIR),
+        "homeassistant_dir": str(HOMEASSISTANT_DIR),
+        "homeassistant_accessible": HOMEASSISTANT_DIR.is_dir(),
+        "ha_api_configured": bool(SUPERVISOR_TOKEN),
         "cwd": str(Path.cwd()),
         "exists_public_dir": PUBLIC_DIR.exists(),
         "exists_data_dir": DATA_DIR.exists(),
@@ -341,15 +462,108 @@ def export_json():
 
 
 @app.post("/api/learn")
-def learn_placeholder():
+def learn_ir():
     payload = request.get_json(silent=True) or {}
-    label = str(payload.get("label", "learned_command")).strip()
+    label = str(payload.get("label", "learned_command")).strip() or "learned_command"
+    entity_id = str(payload.get("entity_id") or payload.get("entityId") or "").strip()
+    integration = str(payload.get("integration") or "").strip().lower()
+    device = str(payload.get("device") or "").strip()
+    command_type = str(payload.get("command_type") or "ir").strip().lower()
+
+    if not integration:
+        return jsonify({"ok": False, "message": "Choisis un type d’intégration."}), 400
+    if not entity_id:
+        return jsonify({"ok": False, "message": "Renseigne l’entité remote.* ."}), 400
+    if not entity_id.startswith("remote."):
+        return jsonify({"ok": False, "message": "L’entité doit commencer par remote."}), 400
+    if integration == "broadlink" and not device:
+        return jsonify({
+            "ok": False,
+            "message": (
+                "Broadlink : le champ « device » (slot / sous-appareil) est obligatoire — "
+                "le même que dans le service remote.learn_command (ex. TV, Climate)."
+            ),
+        }), 400
+
+    if not SUPERVISOR_TOKEN:
+        return jsonify({
+            "ok": False,
+            "message": (
+                "Accès API Home Assistant indisponible. "
+                "Ajoute homeassistant_api: true dans config.yaml de l’add-on, reconstruis et redémarre."
+            ),
+        }), 503
+
+    timeout_sec = _learn_timeout_seconds()
+    service_data: dict = {
+        "entity_id": entity_id,
+        "command": [label],
+        "timeout": timeout_sec,
+    }
+    if device:
+        service_data["device"] = device
+    if integration == "broadlink" and command_type in ("ir", "rf"):
+        service_data["command_type"] = command_type
+
+    snap = _snapshot_broadlink_mtimes() if integration == "broadlink" else {}
+
+    http_timeout = float(timeout_sec) + 35.0
+    status, result = ha_api_post(
+        "services/remote/learn_command",
+        service_data,
+        timeout=http_timeout,
+    )
+
+    if status == 0:
+        return jsonify({
+            "ok": False,
+            "message": f"Impossible de joindre Home Assistant : {result}",
+            "suggested_name": slugify(label),
+            "entity_id": entity_id,
+            "integration": integration,
+        }), 502
+
+    if status != 200:
+        return jsonify({
+            "ok": False,
+            "message": _format_ha_error(result, status),
+            "suggested_name": slugify(label),
+            "entity_id": entity_id,
+            "integration": integration,
+        }), 502
+
+    code = None
+    code_source = None
+    if integration == "broadlink" and device:
+        code = _extract_broadlink_learned_code(device, label, snap)
+        if code:
+            code_source = "broadlink_storage"
+
+    if code:
+        msg = (
+            "Apprentissage terminé. Code Base64 lu depuis le stockage Broadlink de Home Assistant."
+        )
+    else:
+        msg = (
+            "Home Assistant a exécuté remote.learn_command. "
+        )
+        if integration == "broadlink":
+            msg += (
+                "Le code Base64 n’a pas été retrouvé dans /homeassistant/.storage "
+                "(vérifie le montage « homeassistant » en lecture et que « device » correspond au slot utilisé). "
+            )
+        msg += (
+            "Si ton intégration ne stocke pas les codes dans un fichier lisible, copie la valeur depuis les outils développeur ou une notification HA."
+        )
 
     return jsonify({
-        "ok": False,
-        "message": "Branche ici ton backend d’apprentissage IR réel (Broadlink, ESPHome, MQTT, script, etc.).",
+        "ok": True,
+        "message": msg,
+        "code": code,
+        "code_source": code_source,
         "suggested_name": slugify(label),
-        "example_code": "JgBQAAABK5MUNhMSExITEhMSExITEhMSExITEhMSExITEhMSExITEhMSExITEhMSExITEhMSExITEhMSExITEhMSExITEhMSExITEhMSEwAFGQABK0kTAA0FAAAAAAAAAAA="
+        "entity_id": entity_id,
+        "integration": integration,
     })
 
 

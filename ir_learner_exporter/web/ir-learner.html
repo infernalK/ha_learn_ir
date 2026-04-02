@@ -410,29 +410,60 @@ Swing</textarea>
     </section>
   </section>
 
-  <section class="card stack">
-    <h2>Import / apprentissage</h2>
-    <div class="toolbar">
-      <button class="btn danger" id="clearBtn">Vider les commandes</button>
+  <section class="card">
+    <div class="card-head">
+      <h2>Apprentissage</h2>
+      <div class="small">Service <code>remote.learn_command</code></div>
     </div>
 
-    <div>
-      <label>Nom de commande</label>
-      <input id="cmdName" placeholder="cool_24_auto_swing">
-    </div>
+    <div class="card-body stack">
+      <div class="toolbar">
+        <button class="btn danger" id="clearBtn">Vider les commandes</button>
+      </div>
 
-    <div>
-      <label>Code IR Base64</label>
-      <textarea id="cmdCode"></textarea>
-    </div>
+      <div class="field-group">
+        <p class="field-group-title">Appareil d’apprentissage IR (Home Assistant)</p>
+        <p class="small" style="margin:0;">Indique le type d’intégration et l’<strong>entité</strong> qui recevra <code>remote.learn_command</code> (Outils de développement → États).</p>
+        <div>
+          <label for="learnDeviceType">Type d’appareil / intégration</label>
+          <select id="learnDeviceType">
+            <option value="">— Choisir —</option>
+            <option value="broadlink">Broadlink</option>
+            <option value="esphome">ESPHome (remote)</option>
+            <option value="mqtt">MQTT / JSON (entité remote)</option>
+            <option value="raspberrypi">Raspberry Pi Remote GPIO</option>
+            <option value="other">Autre (remote.* compatible learn_command)</option>
+          </select>
+        </div>
+        <div>
+          <label for="learnEntityId">Entité <code>remote.*</code></label>
+          <input id="learnEntityId" type="text" placeholder="remote.salon" autocomplete="off" spellcheck="false">
+        </div>
+        <div id="learnDeviceRow">
+          <label for="learnBroadlinkDevice">Slot / <code>device</code> du service</label>
+          <input id="learnBroadlinkDevice" type="text" placeholder="Broadlink : TV, Climate… — autre intégration : si le service l’exige" autocomplete="off" spellcheck="false">
+        </div>
+        <p class="small" id="learnDeviceHelp" style="margin:0;">Ex. <code>remote.broadlink</code>, <code>remote.clim_esphome</code> — doit être une entité qui supporte l’apprentissage IR dans ton instance HA.</p>
+      </div>
 
-    <div class="toolbar">
-      <button class="btn secondary" id="learnBtn">Apprendre</button>
-      <button class="btn" id="addBtn">Ajouter / mettre à jour</button>
-      <button class="btn secondary" id="findNextEmptyBtn">Trouver la prochaine vide</button>
-    </div>
+      <div>
+        <label>Nom de commande</label>
+        <input id="cmdName" placeholder="cool_24_auto_swing">
+      </div>
 
-    <div id="learnResult" class="small"></div>
+      <div>
+        <label>Code IR Base64</label>
+        <textarea id="cmdCode"></textarea>
+      </div>
+
+      <div class="toolbar">
+        <button class="btn secondary" id="learnBtn">Apprendre</button>
+        <button class="btn" id="addBtn">Ajouter / mettre à jour</button>
+        <button class="btn secondary" id="findNextEmptyBtn">Trouver la prochaine vide</button>
+      </div>
+
+      <div id="learnResult" class="small"></div>
+    </div>
   </section>
 </div>
 

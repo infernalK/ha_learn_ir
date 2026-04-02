@@ -43,12 +43,12 @@ Le JSON exporté est écrit dans :
 
 ## Intégration apprentissage IR
 
-Le endpoint `/api/learn` est encore un stub. Il faut le relier à ton backend réel, par exemple :
+L’add-on appelle le service Home Assistant **`remote.learn_command`** via le proxy Supervisor (`http://supervisor/core/api`) avec le jeton **`SUPERVISOR_TOKEN`** (nécessite **`homeassistant_api: true`** dans `config.yaml`).
 
-- Broadlink Python,
-- bridge MQTT,
-- ESPHome / ESP IR receiver,
-- commande shell qui renvoie un code Base64.
+- **Broadlink** : le service HA exige un **`device`** (slot / sous-appareil), identique à celui des outils développeur. Après un apprentissage réussi, l’add-on relit le code Base64 dans **`/homeassistant/.storage/broadlink_remote_*_codes`** — il faut donc le montage **`homeassistant`** en lecture (déjà prévu dans `config.yaml`). Sans ce montage, l’apprentissage HA peut réussir mais le champ code peut rester vide dans l’UI.
+- **Autres intégrations** (`remote.*`) : l’appel service est effectué (nom de commande, délai). Si l’intégration ne stocke pas les codes dans un fichier lisible depuis l’add-on, il faudra copier le code manuellement depuis HA.
+
+Le délai côté service est configurable via l’option **`learn_timeout_seconds`** (défaut 40).
 
 ## Installation locale
 

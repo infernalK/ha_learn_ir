@@ -17,7 +17,7 @@ This Home Assistant addon provides a web interface for learning and exporting IR
 
 ## API
 
-- `POST /api/learn`: Stub for learning IR codes
+- `POST /api/learn`: Calls Home Assistant `remote.learn_command` (Supervisor API); Broadlink codes are read back from `.storage` when the homeassistant folder is mounted
 - `POST /api/export`: Export learned codes to JSON format
 
 ## Configuration

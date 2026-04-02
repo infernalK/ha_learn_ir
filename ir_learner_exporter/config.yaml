@@ -1,5 +1,5 @@
 name: "IR Learner Exporter"
-version: "0.2.38"
+version: "0.2.40"
 slug: "ir_learner_exporter"
 description: "UI Ingress pour générer un JSON de codes IR"
 arch:
@@ -12,6 +12,8 @@ boot: manual
 init: false
 build: true
 
+homeassistant_api: true
+
 ingress: true
 ingress_port: 8099
 panel_icon: mdi:remote-tv
@@ -22,13 +24,18 @@ map:
   - type: addon_config
     read_only: false
   - type: data
+  # Lecture du dossier config de HA pour récupérer les codes Broadlink après apprentissage (.storage).
+  - type: homeassistant
+    read_only: true
 
 options:
   export_filename: "learned_codes.json"
   default_manufacturer: ""
   default_supported_controller: "Broadlink"
+  learn_timeout_seconds: 40
 
 schema:
   export_filename: str
   default_manufacturer: str?
   default_supported_controller: str
+  learn_timeout_seconds: int
