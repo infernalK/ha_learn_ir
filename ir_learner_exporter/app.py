@@ -98,6 +98,25 @@ def ha_api_get(path: str, *, timeout: float) -> tuple[int, object]:
         return status, raw
 
 
+def _ha_entity_registry_get(entity_id: str) -> dict | None:
+    st, res = ha_api_post(
+        "config/entity_registry/get",
+        {"entity_id": entity_id},
+        timeout=12.0,
+    )
+    if st != 200 or not isinstance(res, dict):
+        return None
+    return res
+
+
+def _default_broadlink_device(entity_id: str) -> str:
+    tail = entity_id.split(".", 1)[-1] if "." in entity_id else entity_id
+    s = slugify(tail)
+    if not s or s == "command":
+        return "main"
+    return s
+
+
 def _format_ha_error(result: object, status: int) -> str:
     if isinstance(result, dict) and result.get("message"):
         return f"Home Assistant (HTTP {status}) : {result['message']}"
@@ -557,18 +576,53 @@ def learn_ir():
         }), 503
 
     timeout_sec = _learn_timeout_seconds()
+    device_override = str((payload.get("device") or "")).strip()
+    reg = _ha_entity_registry_get(entity_id)
+    platform = str((reg or {}).get("platform") or "").lower()
+
     service_data: dict = {
         "entity_id": entity_id,
         "command": [label],
         "timeout": timeout_sec,
     }
+    if device_override:
+        service_data["device"] = device_override
+    elif platform == "broadlink":
+        # Broadlink exige « device » (slot) dans remote.learn_command.
+        service_data["device"] = _default_broadlink_device(entity_id)
 
     http_timeout = float(timeout_sec) + 35.0
-    status, result = ha_api_post(
-        "services/remote/learn_command",
-        service_data,
-        timeout=http_timeout,
-    )
+
+    def call_learn(data: dict) -> tuple[int, object]:
+        return ha_api_post(
+            "services/remote/learn_command",
+            dict(data),
+            timeout=http_timeout,
+        )
+
+    snap = _snapshot_broadlink_mtimes()
+    status, result = call_learn(service_data)
+
+    if status == 400 and "timeout" in service_data:
+        sd = {k: v for k, v in service_data.items() if k != "timeout"}
+        st2, res2 = call_learn(sd)
+        if st2 == 200:
+            status, result = st2, res2
+            service_data = sd
+
+    if status == 400 and "device" not in service_data:
+        sd = dict(service_data)
+        sd["device"] = _default_broadlink_device(entity_id)
+        st3, res3 = call_learn(sd)
+        if st3 == 200:
+            status, result = st3, res3
+            service_data = sd
+        elif st3 == 400 and "timeout" in sd:
+            sd4 = {k: v for k, v in sd.items() if k != "timeout"}
+            st4, res4 = call_learn(sd4)
+            if st4 == 200:
+                status, result = st4, res4
+                service_data = sd4
 
     if status == 0:
         return jsonify({
@@ -579,37 +633,49 @@ def learn_ir():
         }), 502
 
     if status != 200:
+        hint = ""
+        if status == 400:
+            hint = (
+                " Vérifie dans Outils de développement que la commande « learn » fonctionne "
+                "avec les mêmes paramètres (certaines intégrations exigent un slot « device », ex. Broadlink)."
+            )
         return jsonify({
             "ok": False,
-            "message": _format_ha_error(result, status),
+            "message": _format_ha_error(result, status) + hint,
             "suggested_name": slugify(label),
             "entity_id": entity_id,
         }), 502
 
     code = None
     code_source = None
-    # Sans "device", on ne peut pas identifier de manière fiable l'entrée Broadlink.
+    slot = service_data.get("device")
+    if isinstance(slot, str) and slot.strip():
+        code = _extract_broadlink_learned_code(slot.strip(), label, snap)
+        if code:
+            code_source = "broadlink_storage"
 
     if code:
         msg = (
             "Apprentissage terminé. Code Base64 lu depuis le stockage Broadlink de Home Assistant."
         )
     else:
-        msg = (
-            "Home Assistant a exécuté remote.learn_command. "
-        )
+        msg = "Home Assistant a exécuté remote.learn_command. "
         msg += (
             "Le code peut nécessiter une récupération manuelle selon l’intégration (outils développeur / notification HA)."
         )
 
-    return jsonify({
+    out = {
         "ok": True,
         "message": msg,
         "code": code,
         "code_source": code_source,
         "suggested_name": slugify(label),
         "entity_id": entity_id,
-    })
+    }
+    dev_out = service_data.get("device")
+    if isinstance(dev_out, str) and dev_out.strip():
+        out["device"] = dev_out.strip()
+    return jsonify(out)
 
 
 if __name__ == "__main__":
