@@ -311,12 +311,11 @@ const commands = [];
 // Sous Home Assistant Ingress, l'URL peut être servie sous un préfixe variable (et parfois sans slash final).
 // On calcule donc la base API à partir du chemin courant pour que `fetch()` pointe toujours vers `/api/*`.
 function computeApiBase() {
-  const p = window.location.pathname || '/';
-  // On remonte toujours d'un niveau si l'URL ne finit pas par `/`.
-  // Exemple: `/hassio_ingress/<token>/ir-learner.html` -> `/hassio_ingress/<token>/api`
-  // Exemple: `/hassio_ingress/<token>/ir-learner` -> `/hassio_ingress/<token>/api`
-  const baseDir = p.endsWith('/') ? p : p.substring(0, p.lastIndexOf('/') + 1);
-  return `${baseDir}api`;
+  // Ingress HA peut servir le Web UI avec un préfixe variable.
+  // On enlève le dernier segment du pathname, puis on ajoute `/api`.
+  const u = new URL(window.location.href);
+  u.pathname = u.pathname.replace(/\/[^\/]*$/, '/');
+  return `${u.pathname}api`;
 }
 const API_BASE = computeApiBase();
 
@@ -671,6 +670,9 @@ $('exportBtn').onclick = async () => {
 render();
 if ($('matrixStatus')) {
   $('matrixStatus').innerHTML = `<span class="small">API base détectée : <code>${esc(API_BASE)}</code></span>`;
+}
+if ($('filesStatus')) {
+  $('filesStatus').innerHTML = `JS chargé. API base: <code>${esc(API_BASE)}</code>.`;
 }
 refreshGeneratedFiles();
 </script>
