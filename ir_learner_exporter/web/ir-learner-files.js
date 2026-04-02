@@ -68,42 +68,14 @@
     else commands.push({ name: name, code: code });
   }
 
-  var LEARN_DEVICE_HINTS = {
-    "":
-      "Sélectionne un type puis renseigne l’entité <code>remote.*</code> de ton instance Home Assistant.",
-    broadlink:
-      "Broadlink : renseigne le même <code>device</code> (slot) que dans le service d’apprentissage HA. Pendant l’apprentissage, appuie sur la touche de la télécommande quand HA l’indique.",
-    esphome:
-      "ESPHome : télécommande IR déclarée comme <code>remote</code> dans ton firmware.",
-    mqtt:
-      "MQTT : entité <code>remote.*</code> (discovery ou manuel) prenant en charge l’apprentissage.",
-    raspberrypi:
-      "Raspberry Pi Remote GPIO : entité <code>remote.*</code> exposée par l’intégration.",
-    other:
-      "Toute entité <code>remote.*</code> dont la plateforme supporte <code>learn_command</code> dans Home Assistant.",
-  };
-
-  function updateLearnDeviceHelp() {
-    var sel = $("learnDeviceType");
-    var help = $("learnDeviceHelp");
-    if (!help) return;
-    var key = sel && sel.value ? sel.value : "";
-    help.innerHTML = LEARN_DEVICE_HINTS[key] || LEARN_DEVICE_HINTS[""];
-  }
-
   async function learnIr() {
     var lr = $("learnResult");
-    var integration = $("learnDeviceType") ? $("learnDeviceType").value : "";
     var entityId = $("learnEntityId") ? $("learnEntityId").value.trim() : "";
     if (!entityId && $("learnEntitySelect")) {
       entityId = $("learnEntitySelect").value || "";
     }
     var label = ($("cmdName") && $("cmdName").value.trim()) || "learned_command";
 
-    if (!integration) {
-      if (lr) lr.innerHTML = '<span class="warn">Erreur: choisis un type d’appareil / intégration.</span>';
-      return;
-    }
     if (!entityId) {
       if (lr)
         lr.innerHTML =
@@ -117,24 +89,12 @@
       return;
     }
 
-    var broadlinkDevice = $("learnBroadlinkDevice") ? $("learnBroadlinkDevice").value.trim() : "";
-    if (integration === "broadlink" && !broadlinkDevice) {
-      if (lr)
-        lr.innerHTML =
-          '<span class="warn">Erreur: Broadlink — renseigne le slot <code>device</code> (ex. TV, Climate).</span>';
-      return;
-    }
-
     try {
       if (lr) lr.innerHTML = "Chargement… pointe la télécommande vers le récepteur IR si demandé.";
       var learnBody = {
         label: label,
         entity_id: entityId,
-        integration: integration,
       };
-      if (broadlinkDevice) {
-        learnBody.device = broadlinkDevice;
-      }
       var r = await fetch(`${API_BASE}/learn`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -188,7 +148,7 @@
         var opt = document.createElement("option");
         opt.value = e.entity_id;
         var suffix = e.supports_learn ? "" : " (sans LEARN_COMMAND)";
-        opt.textContent = `${e.name} — ${e.entity_id}${suffix}`;
+        opt.textContent = `${e.name} (${e.entity_id})${suffix}`;
         select.appendChild(opt);
       });
     } catch (e) {
@@ -687,12 +647,6 @@
         setPasteStatus('<span class="ok">Commandes vidées.</span>');
         setMatrixStatus('<span class="ok">Commandes vidées.</span>');
       };
-    }
-
-    var learnDeviceType = $("learnDeviceType");
-    if (learnDeviceType) {
-      learnDeviceType.addEventListener("change", updateLearnDeviceHelp);
-      updateLearnDeviceHelp();
     }
 
     var learnBtn = $("learnBtn");

@@ -523,24 +523,11 @@ def learn_ir():
     payload = request.get_json(silent=True) or {}
     label = str(payload.get("label", "learned_command")).strip() or "learned_command"
     entity_id = str(payload.get("entity_id") or payload.get("entityId") or "").strip()
-    integration = str(payload.get("integration") or "").strip().lower()
-    device = str(payload.get("device") or "").strip()
-    command_type = str(payload.get("command_type") or "ir").strip().lower()
 
-    if not integration:
-        return jsonify({"ok": False, "message": "Choisis un type d’intégration."}), 400
     if not entity_id:
         return jsonify({"ok": False, "message": "Renseigne l’entité remote.* ."}), 400
     if not entity_id.startswith("remote."):
         return jsonify({"ok": False, "message": "L’entité doit commencer par remote."}), 400
-    if integration == "broadlink" and not device:
-        return jsonify({
-            "ok": False,
-            "message": (
-                "Broadlink : le champ « device » (slot / sous-appareil) est obligatoire — "
-                "le même que dans le service remote.learn_command (ex. TV, Climate)."
-            ),
-        }), 400
 
     if not SUPERVISOR_TOKEN:
         return jsonify({
@@ -557,12 +544,6 @@ def learn_ir():
         "command": [label],
         "timeout": timeout_sec,
     }
-    if device:
-        service_data["device"] = device
-    if integration == "broadlink" and command_type in ("ir", "rf"):
-        service_data["command_type"] = command_type
-
-    snap = _snapshot_broadlink_mtimes() if integration == "broadlink" else {}
 
     http_timeout = float(timeout_sec) + 35.0
     status, result = ha_api_post(
@@ -577,7 +558,6 @@ def learn_ir():
             "message": f"Impossible de joindre Home Assistant : {result}",
             "suggested_name": slugify(label),
             "entity_id": entity_id,
-            "integration": integration,
         }), 502
 
     if status != 200:
@@ -586,15 +566,11 @@ def learn_ir():
             "message": _format_ha_error(result, status),
             "suggested_name": slugify(label),
             "entity_id": entity_id,
-            "integration": integration,
         }), 502
 
     code = None
     code_source = None
-    if integration == "broadlink" and device:
-        code = _extract_broadlink_learned_code(device, label, snap)
-        if code:
-            code_source = "broadlink_storage"
+    # Sans "device", on ne peut pas identifier de manière fiable l'entrée Broadlink.
 
     if code:
         msg = (
@@ -604,13 +580,8 @@ def learn_ir():
         msg = (
             "Home Assistant a exécuté remote.learn_command. "
         )
-        if integration == "broadlink":
-            msg += (
-                "Le code Base64 n’a pas été retrouvé dans /homeassistant/.storage "
-                "(vérifie le montage « homeassistant » en lecture et que « device » correspond au slot utilisé). "
-            )
         msg += (
-            "Si ton intégration ne stocke pas les codes dans un fichier lisible, copie la valeur depuis les outils développeur ou une notification HA."
+            "Le code peut nécessiter une récupération manuelle selon l’intégration (outils développeur / notification HA)."
         )
 
     return jsonify({
@@ -620,7 +591,6 @@ def learn_ir():
         "code_source": code_source,
         "suggested_name": slugify(label),
         "entity_id": entity_id,
-        "integration": integration,
     })
 
 

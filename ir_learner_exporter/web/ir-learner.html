@@ -423,18 +423,7 @@ Swing</textarea>
 
       <div class="field-group">
         <p class="field-group-title">Appareil d’apprentissage IR (Home Assistant)</p>
-        <p class="small" style="margin:0;">Indique le type d’intégration et l’<strong>entité</strong> qui recevra <code>remote.learn_command</code> (Outils de développement → États).</p>
-        <div>
-          <label for="learnDeviceType">Type d’appareil / intégration</label>
-          <select id="learnDeviceType">
-            <option value="">— Choisir —</option>
-            <option value="broadlink">Broadlink</option>
-            <option value="esphome">ESPHome (remote)</option>
-            <option value="mqtt">MQTT / JSON (entité remote)</option>
-            <option value="raspberrypi">Raspberry Pi Remote GPIO</option>
-            <option value="other">Autre (remote.* compatible learn_command)</option>
-          </select>
-        </div>
+        <p class="small" style="margin:0;">Indique l’<strong>entité</strong> qui recevra <code>remote.learn_command</code> (Outils de développement → États).</p>
         <div>
           <label for="learnEntityId">Entité <code>remote.*</code></label>
           <input id="learnEntityId" type="text" placeholder="remote.salon" autocomplete="off" spellcheck="false">
@@ -448,11 +437,7 @@ Swing</textarea>
             <button class="btn secondary" id="reloadEntitiesBtn" type="button">Rafraîchir</button>
           </div>
         </div>
-        <div id="learnDeviceRow">
-          <label for="learnBroadlinkDevice">Slot / <code>device</code> du service</label>
-          <input id="learnBroadlinkDevice" type="text" placeholder="Broadlink : TV, Climate… — autre intégration : si le service l’exige" autocomplete="off" spellcheck="false">
-        </div>
-        <p class="small" id="learnDeviceHelp" style="margin:0;">Ex. <code>remote.broadlink</code>, <code>remote.clim_esphome</code> — doit être une entité qui supporte l’apprentissage IR dans ton instance HA.</p>
+        <p class="small" id="learnDeviceHelp" style="margin:0;">Ex. <code>remote.ir_salon</code> — l’entité doit supporter <code>remote.learn_command</code>.</p>
       </div>
 
       <div>
