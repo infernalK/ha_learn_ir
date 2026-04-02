@@ -29,6 +29,16 @@
     return String(s ?? "");
   }
 
+  function setImportStatus(html) {
+    var el = $("importStatus");
+    if (el) el.innerHTML = html;
+  }
+
+  function setMatrixStatus(html) {
+    var el = $("matrixStatus");
+    if (el) el.innerHTML = html;
+  }
+
   function setFilesStatus(html) {
     var el = $("filesStatus");
     if (el) el.innerHTML = html;
@@ -118,7 +128,8 @@
 
   function applyImportedData(j) {
     if (!j || !j.commands) {
-      if ($("matrixStatus")) $("matrixStatus").innerHTML = '<span class="warn">JSON importé invalide ou sans commandes.</span>';
+      setImportStatus('<span class="warn">JSON importé invalide ou sans commandes.</span>');
+      setMatrixStatus('<span class="warn">JSON importé invalide ou sans commandes.</span>');
       return;
     }
 
@@ -139,11 +150,49 @@
     commands.length = 0;
     (j.commands || []).forEach(c => commands.push(c));
 
-    if ($("matrixStatus")) {
-      $("matrixStatus").innerHTML = `<span class="ok">Import OK : ${commands.length} commandes.</span>`;
-    }
+    var msg = `<span class="ok">Import OK : ${commands.length} commandes.</span>`;
+    setImportStatus(msg);
+    setMatrixStatus(msg);
     renderCommandsTable();
     visualizeMatrix(commands);
+  }
+
+  async function importFromUI() {
+    var fileInput = $("importFile");
+    var importJson = $("importJson");
+    if (!fileInput || !importJson) return;
+
+    var raw = (importJson.value || "").trim();
+    if (!raw) {
+      if (fileInput.files && fileInput.files.length > 0) {
+        raw = await fileInput.files[0].text();
+      } else {
+        var warn = '<span class="warn">Aucun JSON fourni (coller ou sélectionner un fichier).</span>';
+        setImportStatus(warn);
+        setMatrixStatus(warn);
+        return;
+      }
+    }
+
+    try {
+      setImportStatus("Chargement...");
+      setMatrixStatus("Chargement...");
+
+      var r = await fetch(`${API_BASE}/import`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ json: raw }),
+        cache: "no-store",
+      });
+
+      var j = await r.json();
+      applyImportedData(j);
+    } catch (e) {
+      console.error("importFromUI error:", e);
+      var err = `<span class="warn">Erreur: ${escText(e && e.message ? e.message : e)}</span>`;
+      setImportStatus(err);
+      setMatrixStatus(err);
+    }
   }
 
   async function loadGeneratedFile() {
@@ -255,6 +304,24 @@
     var includeSwing = $("includeSwing");
     if (includeSwing) {
       includeSwing.addEventListener("change", updateSwingSectionVisibility);
+    }
+
+    var importBtn = $("importBtn");
+    if (importBtn) {
+      importBtn.onclick = function () {
+        importFromUI();
+      };
+    }
+
+    var clearBtn = $("clearBtn");
+    if (clearBtn) {
+      clearBtn.onclick = function () {
+        commands.length = 0;
+        renderCommandsTable();
+        visualizeMatrix(commands);
+        setImportStatus('<span class="ok">Commandes vidées.</span>');
+        setMatrixStatus('<span class="ok">Commandes vidées.</span>');
+      };
     }
   }
 
