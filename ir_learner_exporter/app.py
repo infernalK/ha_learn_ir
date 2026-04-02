@@ -51,6 +51,19 @@ def index():
     resp.headers["Cache-Control"] = "no-store, must-revalidate, max-age=0"
     resp.headers["Pragma"] = "no-cache"
     resp.headers["Expires"] = "0"
+    # Home Assistant / Ingress peut appliquer une CSP restrictive.
+    # Comme cette UI utilise des scripts/labels inline, on autorise explicitement.
+    # (Si une CSP externe est aussi injectée, ça peut être plus strict; dans ce cas, il faudra passer
+    # par un script externe.)
+    resp.headers["Content-Security-Policy"] = (
+        "default-src 'self' data: blob:; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: blob:; "
+        "connect-src 'self' https: http:; "
+        "base-uri 'self'; "
+        "object-src 'none'"
+    )
     return resp
 
 
