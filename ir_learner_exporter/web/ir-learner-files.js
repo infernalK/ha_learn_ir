@@ -192,10 +192,34 @@
     swingSection.style.display = includeSwing.checked ? "block" : "none";
   }
 
-  function applyImportedData(j) {
-    if (!j || !j.commands) {
-      setImportStatus('<span class="warn">JSON importé invalide ou sans commandes.</span>');
-      setMatrixStatus('<span class="warn">JSON importé invalide ou sans commandes.</span>');
+  function applyImportedData(j, mode) {
+    // mode: 'file' | 'paste' | 'generated'
+    if (!j) {
+      var err = '<span class="warn">Erreur: réponse du serveur vide.</span>';
+      if (mode === "file") setImportStatus(err);
+      if (mode === "paste") setPasteStatus(err);
+      if (mode === "generated") setFilesStatus(err);
+      setMatrixStatus(err);
+      return;
+    }
+
+    if (j.ok === false) {
+      var msg = "Erreur: " + (j.error ? j.error : "inconnu");
+      var err = '<span class="warn">' + escText(msg) + '</span>';
+      if (mode === "file") setImportStatus(err);
+      if (mode === "paste") setPasteStatus(err);
+      if (mode === "generated") setFilesStatus(err);
+      setMatrixStatus(err);
+      return;
+    }
+
+    if (!j.commands) {
+      var msg = "Erreur: JSON importé invalide ou sans commandes.";
+      var err = '<span class="warn">' + escText(msg) + '</span>';
+      if (mode === "file") setImportStatus(err);
+      if (mode === "paste") setPasteStatus(err);
+      if (mode === "generated") setFilesStatus(err);
+      setMatrixStatus(err);
       return;
     }
 
@@ -217,8 +241,9 @@
     (j.commands || []).forEach(c => commands.push(c));
 
     var msg = `<span class="ok">Import OK : ${commands.length} commandes.</span>`;
-    setImportStatus(msg);
-    setPasteStatus(msg);
+    if (mode === "file") setImportStatus(msg);
+    if (mode === "paste") setPasteStatus(msg);
+    if (mode === "generated") setFilesStatus(msg);
     setMatrixStatus(msg);
     renderCommandsTable();
     visualizeMatrix(commands);
@@ -250,7 +275,7 @@
       });
 
       var j = await r.json();
-      applyImportedData(j);
+      applyImportedData(j, "file");
     } catch (e) {
       console.error("importFromFile error:", e);
       var err = `<span class="warn">Erreur: ${escText(e && e.message ? e.message : e)}</span>`;
@@ -283,7 +308,7 @@
       });
 
       var j = await r.json();
-      applyImportedData(j);
+      applyImportedData(j, "paste");
     } catch (e) {
       console.error("importFromPaste error:", e);
       var err = `<span class="warn">Erreur: ${escText(e && e.message ? e.message : e)}</span>`;
@@ -302,7 +327,9 @@
       return;
     }
 
-    if ($("matrixStatus")) $("matrixStatus").innerHTML = `<span class="small">Chargement de ${esc(filename)}…</span>`;
+    // Harmonisation des messages
+    if ($("matrixStatus")) $("matrixStatus").innerHTML = `<span class="small">Chargement...</span>`;
+    setFilesStatus(`Chargement...`);
 
     try {
       var r = await fetch(
@@ -312,12 +339,17 @@
       var j = await r.json();
 
       if (!j.ok) {
-        if ($("matrixStatus")) $("matrixStatus").innerHTML = `<span class="warn">Erreur chargement: ${esc(j.error || "inconnu")}</span>`;
+        if ($("matrixStatus"))
+          $("matrixStatus").innerHTML = `<span class="warn">Erreur: ${esc(j.error || "inconnu")}</span>`;
+        setFilesStatus(`<span class="warn">Erreur: ${esc(j.error || "inconnu")}</span>`);
         return;
       }
 
       if (!j.data) {
-        if ($("matrixStatus")) $("matrixStatus").innerHTML = '<span class="warn">Données manquantes dans la réponse du serveur.</span>';
+        if ($("matrixStatus"))
+          $("matrixStatus").innerHTML =
+            '<span class="warn">Erreur: Données manquantes dans la réponse du serveur.</span>';
+        setFilesStatus('<span class="warn">Erreur: Données manquantes dans la réponse du serveur.</span>');
         return;
       }
 
@@ -328,12 +360,11 @@
         cache: "no-store",
       });
       var j2 = await r2.json();
-      applyImportedData(j2);
-
-      if ($("matrixStatus")) $("matrixStatus").innerHTML = `<span class="ok">Fichier ${esc(filename)} chargé.</span>`;
+      applyImportedData(j2, "generated");
     } catch (e) {
       console.error("loadGeneratedFile error:", e);
       if ($("matrixStatus")) $("matrixStatus").innerHTML = `<span class="warn">Erreur: ${escText(e && e.message ? e.message : e)}</span>`;
+      setFilesStatus(`<span class="warn">Erreur: ${escText(e && e.message ? e.message : e)}</span>`);
     }
   }
 
