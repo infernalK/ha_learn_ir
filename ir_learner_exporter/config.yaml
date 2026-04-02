@@ -25,7 +25,7 @@ map:
     read_only: false
   - type: data
   # Lecture du dossier config de HA pour récupérer les codes Broadlink après apprentissage (.storage).
-  - type: homeassistant
+  - type: homeassistant_config
     read_only: true
 
 options:
