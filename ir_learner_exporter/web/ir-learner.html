@@ -168,23 +168,54 @@
 
   <section class="card stack">
     <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
-      <h2 style="margin:0;">Importer un fichier local</h2>
-      <div class="small" style="margin:0;">Choisi depuis ton appareil iOS</div>
+      <h2 style="margin:0;">Fichiers générés</h2>
+      <div class="small" style="margin:0;">Depuis `/config` (et/ou `/data`)</div>
+    </div>
+
+    <div style="margin-top:12px;">
+      <label>Charger un fichier généré</label>
+      <div style="display:flex; gap:8px; flex-wrap: wrap; align-items: center;">
+        <select id="generatedFileSelect" style="min-width:220px;"></select>
+        <button class="btn secondary" id="reloadFilesBtn" style="width:auto;">Actualiser</button>
+        <button class="btn" id="loadGeneratedBtn" style="width:auto;">Charger fichier</button>
+      </div>
+      <div id="filesStatus" class="small" style="margin-top:8px; color: var(--muted);">Chargement…</div>
+    </div>
+  </section>
+
+  <section class="card stack">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+      <h2 style="margin:0;">Importer un fichier externe</h2>
+      <div class="small" style="margin:0;">Depuis ton appareil iOS</div>
     </div>
 
     <div style="margin-top:12px;">
       <div>
-        <label>Charger un fichier JSON (.json) (depuis ton appareil)</label>
+        <label>Charger un fichier JSON (.json)</label>
         <input type="file" id="importFile" accept=".json">
-      </div>
-      <div style="margin-top:10px;">
-        <label>Ou coller un JSON existant</label>
-        <textarea id="importJson" placeholder="Colle ici un JSON existant pour le réimporter"></textarea>
       </div>
       <div class="toolbar" style="margin-top:12px;">
         <button class="btn secondary" id="importBtn">Charger fichier</button>
       </div>
       <div id="importStatus" class="small"></div>
+    </div>
+  </section>
+
+  <section class="card stack">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+      <h2 style="margin:0;">Coller un JSON</h2>
+      <div class="small" style="margin:0;">Import depuis le presse-papiers</div>
+    </div>
+
+    <div style="margin-top:12px;">
+      <div>
+        <label>JSON existant</label>
+        <textarea id="importJson" placeholder="Colle ici un JSON existant pour le réimporter"></textarea>
+      </div>
+      <div class="toolbar" style="margin-top:12px;">
+        <button class="btn secondary" id="importPasteBtn">Charger JSON</button>
+      </div>
+      <div id="pasteStatus" class="small"></div>
     </div>
   </section>
 
