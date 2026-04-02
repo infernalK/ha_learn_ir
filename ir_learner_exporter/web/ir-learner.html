@@ -439,6 +439,15 @@ Swing</textarea>
           <label for="learnEntityId">Entité <code>remote.*</code></label>
           <input id="learnEntityId" type="text" placeholder="remote.salon" autocomplete="off" spellcheck="false">
         </div>
+        <div>
+          <label for="learnEntitySelect">Choisir une entité détectée</label>
+          <div class="toolbar">
+            <select id="learnEntitySelect">
+              <option value="">Chargement…</option>
+            </select>
+            <button class="btn secondary" id="reloadEntitiesBtn" type="button">Rafraîchir</button>
+          </div>
+        </div>
         <div id="learnDeviceRow">
           <label for="learnBroadlinkDevice">Slot / <code>device</code> du service</label>
           <input id="learnBroadlinkDevice" type="text" placeholder="Broadlink : TV, Climate… — autre intégration : si le service l’exige" autocomplete="off" spellcheck="false">

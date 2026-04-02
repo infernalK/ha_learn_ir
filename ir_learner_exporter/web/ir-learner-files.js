@@ -95,6 +95,9 @@
     var lr = $("learnResult");
     var integration = $("learnDeviceType") ? $("learnDeviceType").value : "";
     var entityId = $("learnEntityId") ? $("learnEntityId").value.trim() : "";
+    if (!entityId && $("learnEntitySelect")) {
+      entityId = $("learnEntitySelect").value || "";
+    }
     var label = ($("cmdName") && $("cmdName").value.trim()) || "learned_command";
 
     if (!integration) {
@@ -164,6 +167,33 @@
     } catch (e) {
       console.error("learnIr error:", e);
       if (lr) lr.innerHTML = '<span class="warn">Erreur: ' + escText(e && e.message ? e.message : e) + "</span>";
+    }
+  }
+
+  async function refreshRemoteEntities() {
+    var select = $("learnEntitySelect");
+    if (!select) return;
+
+    select.innerHTML = '<option value="">Chargement…</option>';
+    try {
+      var resp = await fetch(`${API_BASE}/remote_entities`, { cache: "no-store" });
+      var j = await resp.json();
+      if (!resp.ok || !j || !j.ok || !Array.isArray(j.entities)) {
+        select.innerHTML = '<option value="">(erreur de chargement)</option>';
+        return;
+      }
+
+      select.innerHTML = '<option value="">-- Choisir une entité remote.* --</option>';
+      j.entities.forEach(function (e) {
+        var opt = document.createElement("option");
+        opt.value = e.entity_id;
+        var suffix = e.supports_learn ? "" : " (sans LEARN_COMMAND)";
+        opt.textContent = `${e.name} — ${e.entity_id}${suffix}`;
+        select.appendChild(opt);
+      });
+    } catch (e) {
+      console.error("refreshRemoteEntities error:", e);
+      select.innerHTML = '<option value="">(erreur de chargement)</option>';
     }
   }
 
@@ -579,8 +609,10 @@
     // Démarre immédiatement (DOM déjà prêt en général, mais on garde la robustesse)
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", refreshGeneratedFiles);
+      document.addEventListener("DOMContentLoaded", refreshRemoteEntities);
     } else {
       refreshGeneratedFiles();
+      refreshRemoteEntities();
     }
 
     var reloadBtn = $("reloadFilesBtn");
@@ -594,6 +626,21 @@
     if (loadBtn) {
       loadBtn.onclick = function () {
         loadGeneratedFile();
+      };
+    }
+
+    var reloadEntitiesBtn = $("reloadEntitiesBtn");
+    if (reloadEntitiesBtn) {
+      reloadEntitiesBtn.onclick = function () {
+        refreshRemoteEntities();
+      };
+    }
+
+    var learnEntitySelect = $("learnEntitySelect");
+    if (learnEntitySelect) {
+      learnEntitySelect.onchange = function () {
+        if (!learnEntitySelect.value) return;
+        if ($("learnEntityId")) $("learnEntityId").value = learnEntitySelect.value;
       };
     }
 

@@ -70,6 +70,34 @@ def ha_api_post(services_path: str, body: dict, *, timeout: float) -> tuple[int,
         return status, raw
 
 
+def ha_api_get(path: str, *, timeout: float) -> tuple[int, object]:
+    """GET vers l’API Home Assistant (proxy Supervisor). Retourne (status, json|str|list)."""
+    if not SUPERVISOR_TOKEN:
+        return 0, "SUPERVISOR_TOKEN manquant"
+    url = f"{HA_API_BASE}/{path.lstrip('/')}"
+    req = urllib.request.Request(
+        url,
+        headers={"Authorization": f"Bearer {SUPERVISOR_TOKEN}"},
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            raw = resp.read().decode("utf-8")
+            status = resp.status
+    except urllib.error.HTTPError as e:
+        status = e.code
+        raw = e.read().decode("utf-8", errors="replace")
+    except urllib.error.URLError as e:
+        return 0, str(e.reason or e)
+
+    if not raw.strip():
+        return status, {}
+    try:
+        return status, json.loads(raw)
+    except json.JSONDecodeError:
+        return status, raw
+
+
 def _format_ha_error(result: object, status: int) -> str:
     if isinstance(result, dict) and result.get("message"):
         return f"Home Assistant (HTTP {status}) : {result['message']}"
@@ -232,6 +260,35 @@ def list_files():
         "public_dir": str(PUBLIC_DIR),
         "data_dir": str(DATA_DIR),
     })
+
+
+@app.get("/api/remote_entities")
+def remote_entities():
+    status, result = ha_api_get("states", timeout=15.0)
+    if status == 0:
+        return jsonify({"ok": False, "error": f"Impossible de joindre Home Assistant: {result}"}), 502
+    if status != 200 or not isinstance(result, list):
+        return jsonify({"ok": False, "error": _format_ha_error(result, status)}), 502
+
+    entities = []
+    for item in result:
+        if not isinstance(item, dict):
+            continue
+        entity_id = str(item.get("entity_id") or "")
+        if not entity_id.startswith("remote."):
+            continue
+        attrs = item.get("attributes") if isinstance(item.get("attributes"), dict) else {}
+        features = int(attrs.get("supported_features") or 0)
+        # remote.RemoteEntityFeature.LEARN_COMMAND == 1
+        supports_learn = bool(features & 1)
+        entities.append({
+            "entity_id": entity_id,
+            "name": str(attrs.get("friendly_name") or entity_id),
+            "supports_learn": supports_learn,
+        })
+
+    entities.sort(key=lambda e: (not e["supports_learn"], e["name"].lower(), e["entity_id"]))
+    return jsonify({"ok": True, "entities": entities})
 
 
 @app.get("/api/load")
