@@ -307,7 +307,15 @@ Swing</textarea>
 
 <script>
 const commands = [];
-const API_BASE = 'api';
+// Sous Home Assistant Ingress, l'URL peut être servie sous un préfixe variable (et parfois sans slash final).
+// On calcule donc la base API à partir du chemin courant pour que `fetch()` pointe toujours vers `/api/*`.
+function computeApiBase() {
+  const p = window.location.pathname || '/';
+  const looksLikeFile = /\.[a-zA-Z0-9]+$/.test(p);
+  const baseDir = p.endsWith('/') ? p : (looksLikeFile ? p.substring(0, p.lastIndexOf('/') + 1) : p + '/');
+  return `${baseDir}api`;
+}
+const API_BASE = computeApiBase();
 
 const $ = id => document.getElementById(id);
 const lines = id => $(id).value.split(/\n/).map(v => v.trim()).filter(Boolean);
@@ -520,6 +528,11 @@ async function refreshGeneratedFiles() {
     select.innerHTML = '<option value="">-- Choisir un fichier --</option>' + j.files.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join('');
   } catch (error) {
     console.error('Erreur refreshGeneratedFiles:', error);
+    const select = $('generatedFileSelect');
+    if (select) {
+      select.innerHTML = '<option value="">(erreur de chargement)</option>';
+    }
+    $('matrixStatus').innerHTML = `<span class="warn">Impossible de charger la liste des fichiers: ${esc(error.message || error)}</span>`;
   }
 }
 
